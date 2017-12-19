@@ -13,14 +13,11 @@ from __future__ import print_function
 """
 import numpy as np
 
-import keras.backend as K
 from keras.models import Model
-from keras.layers import Input, Flatten, Dropout, Concatenate, Activation, Conv2D, Lambda, Reshape, Concatenate
-from keras.layers import MaxPooling2D, AveragePooling2D, BatchNormalization
-from keras.applications.imagenet_utils import _obtain_input_shape
+from keras.layers import Input, Activation, Conv2D, Lambda, Reshape, Concatenate
+from keras.layers import MaxPooling2D, BatchNormalization
 
 from .Layer_AnchorBoxes import AnchorBoxes
-from .Layer_L2Normalization import L2Normalization
 
 
 def _fire(x, filters, name="fire"):
@@ -28,7 +25,7 @@ def _fire(x, filters, name="fire"):
     squeeze = Conv2D(sq_filters, (1, 1), activation="relu", padding="same", kernel_initializer="he_normal", name=name+"/squeeze1x1")(x)
     expand1 = Conv2D(ex1_filters, (1, 1), activation="relu", padding="same", kernel_initializer="he_normal", name=name+"/expand1x1")(squeeze)
     expand2 = Conv2D(ex2_filters, (3, 3), activation="relu", padding="same", kernel_initializer="he_normal", name=name+"/expand3x3")(squeeze)
-    x = Concatenate(axis=-1, name=name)([expand1, expand2])
+    x = Concatenate(axis=-1, name=name+"/concate")([expand1, expand2])
     return x
 
 def _fire_with_bn(x, filters, name="fire"):
@@ -36,11 +33,11 @@ def _fire_with_bn(x, filters, name="fire"):
     squeeze = Conv2D(sq_filters, (1, 1), activation="relu", padding="same", kernel_initializer="he_normal", name=name+"/squeeze1x1")(x)
     expand1 = Activation(activation="relu", name=name+"/relu_expand1x1")(BatchNormalization(name=name+"/expand1x1/bn")(Conv2D(ex1_filters, (1, 1), strides=(1, 1), padding="same", kernel_initializer="he_normal", name=name+"/expand1x1")(squeeze)))
     expand2 = Activation(activation="relu", name=name+"/relu_expand3x3")(BatchNormalization(name=name+"/expand3x3/bn")(Conv2D(ex2_filters, (3, 3), strides=(1, 1), padding="same", kernel_initializer="he_normal", name=name+"/expand3x3")(squeeze)))
-    x = Concatenate(axis=-1, name=name)([expand1, expand2])
+    x = Concatenate(axis=-1, name=name+"/concate")([expand1, expand2])
     return x
 
-def _conv2D_with_bn(x, n_filters, k_size, k_stride, name):
-    x = Conv2D(n_filters, k_size, strides=(k_stride, k_stride), padding="same", kernel_initializer="he_normal", name=name)(x)
+def _conv2D_with_bn(x, n_filters, k_size, k_stride, name, pad="same"):
+    x = Conv2D(n_filters, k_size, strides=(k_stride, k_stride), padding=pad, kernel_initializer="he_normal", name=name+"/conv")(x)
     x = BatchNormalization(name=name+"/bn")(x)
     x = Activation(activation="relu", name=name+"/relu")(x)
     return x
@@ -199,15 +196,15 @@ def base_feature_model(image_size, n_classes,
         name='lambda1')(x)
 
     conv1 = Conv2D(64, kernel_size=(3, 3), strides=(2, 2), padding="same", activation="relu", kernel_initializer="he_normal", name="conv1")(normed)
-    pool1 = MaxPooling2D(pool_size=(3, 3), strides=(2, 2), name="pool1", padding="valid")(conv1)
+    pool1 = MaxPooling2D(pool_size=(3, 3), strides=(2, 2), name="pool1", padding="same")(conv1)
 
     fire2 = _fire(pool1, (16, 64, 64), name="fire2")
     fire3 = _fire(fire2, (16, 64, 64), name="fire3")
-    pool3 = MaxPooling2D(pool_size=(3, 3), strides=(2, 2), name="pool3", padding="valid")(fire3)
+    pool3 = MaxPooling2D(pool_size=(3, 3), strides=(2, 2), name="pool3", padding="same")(fire3)
 
     fire4 = _fire(pool3, (32, 128, 128), name="fire4")
     fire5 = _fire(fire4, (32, 128, 128), name="fire5")
-    pool5 = MaxPooling2D(pool_size=(3, 3), strides=(2, 2), name='pool5', padding="valid")(fire5)
+    pool5 = MaxPooling2D(pool_size=(3, 3), strides=(2, 2), name='pool5', padding="same")(fire5)
 
     fire5_conv_bn = Conv2D(256, (3, 3), strides=(1, 1), kernel_initializer="he_normal", name="fire5_conv_bn")(fire5)
     fire5_bn = BatchNormalization(name="fire5_bn")(fire5_conv_bn)
@@ -217,16 +214,16 @@ def base_feature_model(image_size, n_classes,
 
     fire8 = _fire(fire7, (64, 256, 256), name="fire8")
     fire9 = _fire_with_bn(fire8, (64, 256, 256), name="fire9")
-    pool9 = MaxPooling2D(pool_size=(3, 3), strides=(2, 2), name='pool9', padding="valid")(fire9)
+    pool9 = MaxPooling2D(pool_size=(3, 3), strides=(2, 2), name='pool9', padding="same")(fire9)
 
     fire10 = _fire_with_bn(pool9, (96, 384, 384), name="fire10")
-    pool10 = MaxPooling2D(pool_size=(3, 3), strides=(2, 2), name='pool10', padding="valid")(fire10)
+    pool10 = MaxPooling2D(pool_size=(3, 3), strides=(2, 2), name='pool10', padding="same")(fire10)
 
     fire11 = _fire_with_bn(pool10, (96, 384, 384), name="fire11")
     conv12_1 = _conv2D_with_bn(fire11, 128, (1, 1), 1, name="conv12_1")
     conv12_2 = _conv2D_with_bn(conv12_1, 256, (3, 3), 2, name="conv12_2")
     conv13_1 = _conv2D_with_bn(conv12_2, 64, (1, 1), 1, name="conv13_1")
-    conv13_2 = _conv2D_with_bn(conv13_1, 128, (3, 3), 2, name="conv13_2")
+    conv13_2 = _conv2D_with_bn(conv13_1, 128, (3, 3), 2, pad="valid", name="conv13_2")
     
     
     ### Build the convolutional predictor layers on top of the base network
@@ -340,8 +337,3 @@ def base_feature_model(image_size, n_classes,
                                  conv13_2_mbox_conf._keras_shape[1:3]])
 
     return model, predictor_sizes
-
-
-
-
-

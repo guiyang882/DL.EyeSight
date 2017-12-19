@@ -68,6 +68,7 @@ adam = Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=5e-04)
 ssd_loss = SSDLoss(neg_pos_ratio=3, n_neg_min=0, alpha=1.0)
 model.compile(optimizer=adam, loss=ssd_loss.compute_loss)
 
+
 # TODO: Set the path to the `.h5` file of the model to be loaded.
 # model_path = 'ssd300_0.h5'
 
@@ -78,15 +79,31 @@ model.compile(optimizer=adam, loss=ssd_loss.compute_loss)
 #                                                'L2Normalization': L2Normalization,
 #                                                'compute_loss': ssd_loss.compute_loss})
 
+# 3: Instantiate an encoder that can encode ground truth labels into the format needed by the SSD loss function.
+# The encoder constructor needs the spatial dimensions of the model's predictor layers to create the anchor boxes.
+ssd_box_encoder = SSDBoxEncoder(img_height=img_height,
+                                img_width=img_width,
+                                n_classes=n_classes,
+                                predictor_sizes=predictor_sizes,
+                                min_scale=None,
+                                max_scale=None,
+                                scales=scales,
+                                aspect_ratios_global=None,
+                                aspect_ratios_per_layer=aspect_ratios,
+                                two_boxes_for_ar1=two_boxes_for_ar1,
+                                limit_boxes=limit_boxes,
+                                variances=variances,
+                                pos_iou_threshold=0.5,
+                                neg_iou_threshold=0.2,
+                                coords=coords,
+                                normalize_coords=normalize_coords)
+
 ### Set up the data generators for the training
 # 1: Instantiate to `BatchGenerator` objects: One for training, one for validation.
-
 train_dataset = BatchGenerator(box_output_format=['class_id', 'xmin', 'xmax', 'ymin', 'ymax'])
 val_dataset = BatchGenerator(box_output_format=['class_id', 'xmin', 'xmax', 'ymin', 'ymax'])
+
 # 2: Parse the image and label lists for the training and validation datasets. This can take a while.
-
-# TODO: Set the paths to the datasets here.
-
 # The directories that contain the images.
 dataset_prefix = "/Volumes/projects/repos/VOC.SOURCE.DATA/"
 VOC_2007_images_path      = dataset_prefix + 'VOCdevkit/VOC2007/JPEGImages/'
@@ -139,35 +156,8 @@ val_dataset.parse_xml(images_paths=[VOC_2012_images_path],
                       exclude_difficult=False,
                       ret=False)
 
-# 3: Instantiate an encoder that can encode ground truth labels into the format needed by the SSD loss function.
-
-# The encoder constructor needs the spatial dimensions of the model's predictor layers to create the anchor boxes.
-predictor_sizes = [model.get_layer('fire5_bn_mbox_conf').output_shape[1:3],
-                   model.get_layer('fire9_mbox_conf').output_shape[1:3],
-                   model.get_layer('fire10_mbox_conf').output_shape[1:3],
-                   model.get_layer('fire11_mbox_conf').output_shape[1:3],
-                   model.get_layer('conv12_2_mbox_conf').output_shape[1:3],
-                   model.get_layer('conv13_2_mbox_conf').output_shape[1:3]]
-
-ssd_box_encoder = SSDBoxEncoder(img_height=img_height,
-                                img_width=img_width,
-                                n_classes=n_classes,
-                                predictor_sizes=predictor_sizes,
-                                min_scale=None,
-                                max_scale=None,
-                                scales=scales,
-                                aspect_ratios_global=None,
-                                aspect_ratios_per_layer=aspect_ratios,
-                                two_boxes_for_ar1=two_boxes_for_ar1,
-                                limit_boxes=limit_boxes,
-                                variances=variances,
-                                pos_iou_threshold=0.5,
-                                neg_iou_threshold=0.2,
-                                coords=coords,
-                                normalize_coords=normalize_coords)
-
 # 4: Set the batch size.
-batch_size = 32 # Change the batch size if you like, or if you run into memory issues with your GPU.
+batch_size = 64 # Change the batch size if you like, or if you run into memory issues with your GPU.
 
 # 5: Set the image processing / data augmentation options and create generator handles.
 train_generator = train_dataset.generate(batch_size=batch_size,
@@ -244,7 +234,7 @@ history = model.fit_generator(generator = train_generator,
 
 # TODO: Set the filename (without the .h5 file extension!) under which to save the model and weights.
 #       Do the same in the `ModelCheckpoint` callback above.
-model_name = 'ssd300'
+model_name = 'squeezenet300'
 model.save('weights/{}.h5'.format(model_name))
 model.save_weights('weights/{}_weights.h5'.format(model_name))
 
