@@ -237,8 +237,8 @@ history = model.fit_generator(generator = train_generator,
                                                            period=1),
                                            LearningRateScheduler(lr_schedule),
                                            EarlyStopping(monitor='val_loss',
-                                                         min_delta=0.0001,
-                                                         patience=5)],
+                                                         min_delta=0.00001,
+                                                         patience=20)],
                               validation_data = val_generator,
                               validation_steps = ceil(n_val_samples/batch_size))
 
