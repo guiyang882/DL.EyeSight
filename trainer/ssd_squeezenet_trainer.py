@@ -205,9 +205,9 @@ n_val_samples   = val_dataset.get_n_samples()
 
 # Define a learning rate schedule.
 def lr_schedule(epoch):
-    if epoch <= 100:
+    if epoch <= 300:
         return 0.001
-    elif epoch <= 500:
+    elif epoch <= 800:
         return 0.0001
     else:
         return 0.00001
@@ -228,7 +228,7 @@ history = model.fit_generator(generator = train_generator,
                                            LearningRateScheduler(lr_schedule),
                                            EarlyStopping(monitor='val_loss',
                                                          min_delta=0.00001,
-                                                         patience=20)],
+                                                         patience=100)],
                               validation_data = val_generator,
                               validation_steps = ceil(n_val_samples/batch_size))
 

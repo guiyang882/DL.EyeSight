@@ -96,7 +96,7 @@ def get_image_for_id(voc_path, year, image_id):
     if not os.path.exists(fname):
         return None
     data = Image.open(fname)
-    img_matrix = np.asarray(data.convert('L'))
+    img_matrix = np.asarray(data.convert('RGB'))
     data.close()
     return img_matrix
 

@@ -380,19 +380,23 @@ def preprocess_true_boxes(true_boxes, anchors, image_size):
     conv_height = height // 32
     conv_width = width // 32
     num_box_params = true_boxes.shape[1]
-    detectors_mask = np.zeros(
-        (conv_height, conv_width, num_anchors, 1), dtype=np.float32)
-    matching_true_boxes = np.zeros(
-        (conv_height, conv_width, num_anchors, num_box_params),
-        dtype=np.float32)
+    detectors_mask = np.zeros((conv_height, conv_width, num_anchors, 1), dtype=np.float32)
+    matching_true_boxes = np.zeros((conv_height, conv_width, num_anchors, num_box_params), dtype=np.float32)
+
+    # print("len(anchors) is ", len(anchors))  # 5
+    # print("detectors_mask is ", detectors_mask.shape) # (13, 13, 5, 1)
+    # print("matching_true_boxes is ", matching_true_boxes.shape) # (13, 13, 5, 5)
 
     for box in true_boxes:
         # scale box to convolutional feature spatial dimensions
         box_class = box[4:5]
-        box = box[0:4] * np.array(
-            [conv_width, conv_height, conv_width, conv_height])
+        box = box[0:4] * np.array([conv_width-1, conv_height-1, conv_width-1, conv_height-1])
         i = np.floor(box[1]).astype('int')
         j = np.floor(box[0]).astype('int')
+        i = max(0, i)
+        j = max(0, j)
+        i = min(i, conv_height-1)
+        j = min(j, conv_width-1)
         best_iou = 0
         best_anchor = 0
         for k, anchor in enumerate(anchors):
