@@ -98,13 +98,12 @@ class YOLO_TF:
         self.conv_26 = self.conv_layer(26, self.conv_25, 1024, 3, 2)
         self.conv_27 = self.conv_layer(27, self.conv_26, 1024, 3, 1)
         self.conv_28 = self.conv_layer(28, self.conv_27, 1024, 3, 1)
-        self.fc_29 = self.fc_layer(
-            29, self.conv_28,512, flat=True, linear=False)
-        self.fc_30 = self.fc_layer(
-            30, self.fc_29,4096, flat=False, linear=False)
+
+        self.fc_29 = self.fc_layer(29, self.conv_28, 12, flat=True, linear=False)
+        self.fc_30 = self.fc_layer(30, self.fc_29, 4096, flat=False, linear=False)
         #skip dropout_31
-        self.fc_32 = self.fc_layer(
-            32, self.fc_30, 1470, flat=False, linear=True)
+        self.fc_32 = self.fc_layer(32, self.fc_30, 1470, flat=False, linear=True)
+        
         self.sess = tf.Session()
         self.sess.run(tf.global_variables_initializer())
         self.saver = tf.train.Saver()

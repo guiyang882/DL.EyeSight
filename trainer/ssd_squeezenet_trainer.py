@@ -64,7 +64,7 @@ model, predictor_sizes = squeezenet_300(image_size=(img_height, img_width, img_c
 # model.load_weights(model_weight_path, by_name=True)
 
 # 3: Instantiate an Adam optimizer and the SSD loss function and compile the model
-adam = Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=5e-04)
+adam = Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)
 ssd_loss = SSDLoss(neg_pos_ratio=3, n_neg_min=0, alpha=1.0)
 model.compile(optimizer=adam, loss=ssd_loss.compute_loss)
 
