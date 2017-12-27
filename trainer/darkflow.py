@@ -16,7 +16,6 @@ last_level_dir_path = os.path.abspath(os.curdir+"/../")
 sys.path.insert(0, last_level_dir_path)
 importlib.reload(sys)
 
-print(sys.path)
 import trainer
 from darkflow.cli import cliHandler
 

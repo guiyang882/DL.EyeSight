@@ -17,13 +17,13 @@ class argHandler(dict):
     _descriptions = {'help, --h, -h': 'show this super helpful message and exit'}
     
     def setDefaults(self):
-        self.define('imgdir', './sample_img/', 'path to testing directory with images')
-        self.define('binary', './bin/', 'path to .weights directory')
+        self.define('imgdir', '../sample_img/', 'path to testing directory with images')
+        self.define('binary', '../bin/', 'path to .weights directory')
         self.define('config', './cfg/', 'path to .cfg directory')
         self.define('dataset', '../pascal/VOCdevkit/IMG/', 'path to dataset directory')
         self.define('labels', './darkflow/cfg/labels.txt', 'path to labels file')
-        self.define('backup', './ckpt/', 'path to backup folder')
-        self.define('summary', './summary/', 'path to TensorBoard summaries directory')
+        self.define('backup', '../ckpt/', 'path to backup folder')
+        self.define('summary', '../summary/', 'path to TensorBoard summaries directory')
         self.define('annotation', '../pascal/VOCdevkit/ANN/', 'path to annotation directory')
         self.define('threshold', -0.1, 'detection threshold')
         self.define('model', './darkflow/cfg/tiny-yolo-voc-new.cfg', 'configuration of choice')

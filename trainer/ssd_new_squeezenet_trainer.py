@@ -8,6 +8,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import sys
 from math import ceil
 import numpy as np
 from matplotlib import pyplot as plt
@@ -23,8 +24,9 @@ from ssd.SSDBoxEncoder import SSDBoxEncoder
 from ssd.BatchGenerator import BatchGenerator
 from ssd.Layer_AnchorBoxes import AnchorBoxes
 from ssd.Layer_L2Normalization import L2Normalization
-from ssd.feature_base_squeezenet import base_feature_model as squeezenet_300
 from ssd.box_encode_decode_utils import decode_y, decode_y2
+from ssd.feature_base_new_squeezenet import base_feature_model as squeezenet_300
+
 
 img_height = 300 # Height of the input images
 img_width = 300 # Width of the input images
@@ -63,13 +65,16 @@ adam = Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)
 ssd_loss = SSDLoss(neg_pos_ratio=3, n_neg_min=0, alpha=1.0)
 model.compile(optimizer=adam, loss=ssd_loss.compute_loss)
 
+model.summary()
+sys.exit(0)
+
 # 2: Load the trained model weights into the model.
 # TODO: Set the path to the model weights.
-K.clear_session() # Clear previous models from memory.
-model_path = ''
-model = load_model(model_path, custom_objects={'AnchorBoxes': AnchorBoxes,
-                                               'L2Normalization': L2Normalization,
-                                               'compute_loss': ssd_loss.compute_loss})
+# K.clear_session() # Clear previous models from memory.
+# model_path = ''
+# model = load_model(model_path, custom_objects={'AnchorBoxes': AnchorBoxes,
+#                                                'L2Normalization': L2Normalization,
+#                                                'compute_loss': ssd_loss.compute_loss})
 
 # TODO: Set the path to the `.h5` file of the model to be loaded.
 # model_path = 'ssd300_0.h5'
