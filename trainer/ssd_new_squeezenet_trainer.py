@@ -25,11 +25,11 @@ from ssd.BatchGenerator import BatchGenerator
 from ssd.Layer_AnchorBoxes import AnchorBoxes
 from ssd.Layer_L2Normalization import L2Normalization
 from ssd.box_encode_decode_utils import decode_y, decode_y2
-from ssd.feature_base_new_squeezenet import base_feature_model as squeezenet_300
+from ssd.feature_base_new_squeezenet import base_feature_model as squeezenet_512
 
 
-img_height = 300 # Height of the input images
-img_width = 300 # Width of the input images
+img_height = 512 # Height of the input images
+img_width = 512 # Width of the input images
 img_channels = 3 # Number of color channels of the input images
 n_classes = 21 # Number of classes including the background class, e.g. 21 for the Pascal VOC datasets
 scales = [0.1, 0.2, 0.37, 0.54, 0.71, 0.88, 1.05] # The anchor box scaling factors used in the original SSD300 for the Pascal VOC datasets, the factors for the MS COCO dataset are smaller, namely [0.07, 0.15, 0.33, 0.51, 0.69, 0.87, 1.05]
@@ -47,7 +47,7 @@ normalize_coords = True
 
 # 1: Build the Keras model
 K.clear_session() # Clear previous models from memory.
-model, predictor_sizes = squeezenet_300(image_size=(img_height, img_width, img_channels),
+model, predictor_sizes = squeezenet_512(image_size=(img_height, img_width, img_channels),
                                  n_classes=n_classes,
                                  min_scale=None, # You could pass a min scale and max scale instead of the `scales` list, but we're not doing that here
                                  max_scale=None,
@@ -66,7 +66,7 @@ ssd_loss = SSDLoss(neg_pos_ratio=3, n_neg_min=0, alpha=1.0)
 model.compile(optimizer=adam, loss=ssd_loss.compute_loss)
 
 model.summary()
-sys.exit(0)
+
 
 # 2: Load the trained model weights into the model.
 # TODO: Set the path to the model weights.
@@ -225,7 +225,7 @@ epochs = 1000
 history = model.fit_generator(generator = train_generator,
                               steps_per_epoch = ceil(n_train_samples/batch_size),
                               epochs = epochs,
-                              callbacks = [ModelCheckpoint('weights/squeezenet300_model_epoch-{epoch:02d}_loss-{loss:.4f}_val_loss-{val_loss:.4f}.h5',
+                              callbacks = [ModelCheckpoint('weights/new_squeezenet512_model_epoch-{epoch:02d}_loss-{loss:.4f}_val_loss-{val_loss:.4f}.h5',
                                                            monitor='val_loss',
                                                            verbose=1,
                                                            save_best_only=True,
@@ -241,7 +241,7 @@ history = model.fit_generator(generator = train_generator,
 
 # TODO: Set the filename (without the .h5 file extension!) under which to save the model and weights.
 #       Do the same in the `ModelCheckpoint` callback above.
-model_name = 'squeezenet300'
+model_name = 'new_squeezenet512'
 model.save('weights/{}.h5'.format(model_name))
 model.save_weights('weights/{}_weights.h5'.format(model_name))
 
