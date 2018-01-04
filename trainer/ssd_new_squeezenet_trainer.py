@@ -112,51 +112,36 @@ val_dataset = BatchGenerator(box_output_format=['class_id', 'xmin', 'xmax', 'ymi
 
 # 2: Parse the image and label lists for the training and validation datasets. This can take a while.
 # The directories that contain the images.
-dataset_prefix = "/Volumes/projects/repos/VOC.SOURCE.DATA/"
-VOC_2007_images_path      = dataset_prefix + 'VOCdevkit/VOC2007/JPEGImages/'
-VOC_2007_test_images_path = dataset_prefix + 'VOCdevkit/VOC2007/JPEGImages/'
-VOC_2012_images_path      = dataset_prefix + 'VOCdevkit/VOC2012/JPEGImages/'
+dataset_prefix = "/Volumes/projects/repos/RSI/LSD10/"
+lsd12_images_path      = dataset_prefix + 'JPEGImages/'
 
 # The directories that contain the annotations.
-VOC_2007_annotations_path      = dataset_prefix + 'VOCdevkit/VOC2007/Annotations/'
-VOC_2007_test_annotations_path = dataset_prefix + 'VOCdevkit/VOC2007/Annotations/'
-VOC_2012_annotations_path      = dataset_prefix + 'VOCdevkit/VOC2012/Annotations/'
+lsd12_annotations_path      = dataset_prefix + 'Annotations/'
 
 # The paths to the image sets.
-VOC_2007_train_image_set_path    = dataset_prefix + 'VOCdevkit/VOC2007/ImageSets/Main/train.txt'
-VOC_2012_train_image_set_path    = dataset_prefix + 'VOCdevkit/VOC2012/ImageSets/Main/train.txt'
-VOC_2007_val_image_set_path      = dataset_prefix + 'VOCdevkit/VOC2007/ImageSets/Main/val.txt'
-VOC_2012_val_image_set_path      = dataset_prefix + 'VOCdevkit/VOC2012/ImageSets/Main/val.txt'
-VOC_2007_trainval_image_set_path = dataset_prefix + 'VOCdevkit/VOC2007/ImageSets/Main/trainval.txt'
-VOC_2012_trainval_image_set_path = dataset_prefix + 'VOCdevkit/VOC2012/ImageSets/Main/trainval.txt'
-VOC_2007_test_image_set_path     = dataset_prefix + 'VOCdevkit/VOC2007/ImageSets/Main/test.txt'
+lsd12_train_image_set_path    = dataset_prefix + 'train.txt'
+lsd12_val_image_set_path      = dataset_prefix + 'valid.txt'
+lsd12_test_image_set_path     = dataset_prefix + 'test.txt'
+
 
 # The XML parser needs to now what object class names to look for and in which order to map them to integers.
 classes = ['background',
-           'aeroplane', 'bicycle', 'bird', 'boat',
-           'bottle', 'bus', 'car', 'cat',
-           'chair', 'cow', 'diningtable', 'dog',
-           'horse', 'motorbike', 'person', 'pottedplant',
-           'sheep', 'sofa', 'train', 'tvmonitor']
+           'airplane', 'ship', 'storagetank', 'baseballdiamond',
+           'tenniscourt', 'basketballcourt', 'groundtrackfield', 
+           'harbor', 'bridge', 'vehicle', 'van', 'truck']
 
-train_dataset.parse_xml(images_paths=[VOC_2007_images_path,
-                                      VOC_2007_test_images_path,
-                                      VOC_2012_images_path],
-                        annotations_paths=[VOC_2007_annotations_path,
-                                           VOC_2007_test_annotations_path,
-                                           VOC_2012_annotations_path],
-                        image_set_paths=[VOC_2007_trainval_image_set_path,
-                                         VOC_2007_test_image_set_path,
-                                         VOC_2012_train_image_set_path],
+train_dataset.parse_xml(images_paths=[lsd12_images_path],
+                        annotations_paths=[lsd12_annotations_path],
+                        image_set_paths=[lsd12_train_image_set_path],
                         classes=classes,
                         include_classes='all',
                         exclude_truncated=False,
                         exclude_difficult=False,
                         ret=False)
 
-val_dataset.parse_xml(images_paths=[VOC_2012_images_path],
-                      annotations_paths=[VOC_2012_annotations_path],
-                      image_set_paths=[VOC_2012_val_image_set_path],
+val_dataset.parse_xml(images_paths=[lsd12_images_path],
+                      annotations_paths=[lsd12_annotations_path],
+                      image_set_paths=[lsd12_val_image_set_path],
                       classes=classes,
                       include_classes='all',
                       exclude_truncated=False,
@@ -164,7 +149,7 @@ val_dataset.parse_xml(images_paths=[VOC_2012_images_path],
                       ret=False)
 
 # 4: Set the batch size.
-batch_size = 64 # Change the batch size if you like, or if you run into memory issues with your GPU.
+batch_size = 10 # Change the batch size if you like, or if you run into memory issues with your GPU.
 
 # 5: Set the image processing / data augmentation options and create generator handles.
 train_generator = train_dataset.generate(batch_size=batch_size,

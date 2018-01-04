@@ -384,8 +384,10 @@ class BatchGenerator:
                     class_id = self.classes.index(class_name)
                     # Check if this class is supposed to be included in the dataset
                     if (not self.include_classes == 'all') and (not class_id in self.include_classes): continue
-                    pose = obj.pose.text
-                    truncated = int(obj.truncated.text)
+                    # pose = obj.pose.text
+                    pose = 'Unknown'
+                    # truncated = int(obj.truncated.text)
+                    truncated = 0
                     if exclude_truncated and (truncated ==1): continue
                     difficult = int(obj.difficult.text)
                     if exclude_difficult and (difficult == 1): continue
