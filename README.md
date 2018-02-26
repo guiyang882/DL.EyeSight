@@ -6,6 +6,7 @@
 OS: Ubuntu 16.04
 Python: Python 3.6.0
 Tensorflow: 1.4.1 version
+Opencv: 3.2.0 version for python
 ```
 
 ## 模型训练的数据格式
@@ -29,9 +30,17 @@ Tensorflow: 1.4.1 version
 ## TODOLISTS
 - [ ] 整理文件目录结构，按照设计模式进行
 - [ ] 增加数据预处理的PipeLine
+    - [ ] 图像插值
+    - [ ] 图像镜像操作(左右，上下)
+    - [ ] 添加随机噪声(各种模糊操作)
+    - [ ] 对比度拉伸
+    - [ ] 饱和度变化
+    - [ ] 图像锐化
+    - [ ] 图像的DropOut
 - [ ] 提高模型训练速度
     - [ ] RawData ---> TFRecords
     - [ ] Single Process ---> Multi Processes
+- [ ] 检测过程的可视化
 
 
 ## 联系我
