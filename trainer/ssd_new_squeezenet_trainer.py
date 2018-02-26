@@ -149,7 +149,7 @@ val_dataset.parse_xml(images_paths=[lsd12_images_path],
                       ret=False)
 
 # 4: Set the batch size.
-batch_size = 10 # Change the batch size if you like, or if you run into memory issues with your GPU.
+batch_size = 12 # Change the batch size if you like, or if you run into memory issues with your GPU.
 
 # 5: Set the image processing / data augmentation options and create generator handles.
 train_generator = train_dataset.generate(batch_size=batch_size,
@@ -205,7 +205,7 @@ def lr_schedule(epoch):
         return 0.00001
 
 # TODO: Set the number of epochs to train for.
-epochs = 1000
+epochs = 350
 
 history = model.fit_generator(generator = train_generator,
                               steps_per_epoch = ceil(n_train_samples/batch_size),
