@@ -27,9 +27,9 @@ Tensorflow: 1.4.1 version
 * YOLO
 
 ## TODOLISTS
-[ ] 整理文件目录结构，按照设计模式进行
-[ ] 增加数据预处理的PipeLine
-[ ] 提高模型训练速度
+- [ ] 整理文件目录结构，按照设计模式进行
+- [ ] 增加数据预处理的PipeLine
+- [ ] 提高模型训练速度
     - [ ] RawData ---> TFRecords
     - [ ] Single Process ---> Multi Processes
 
