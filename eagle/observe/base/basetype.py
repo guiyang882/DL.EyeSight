@@ -10,8 +10,18 @@ from __future__ import print_function
 
 import copy
 import numpy as np
+from enum import Enum
 
 import eagle.utils as eu
+
+
+class BatchStatus(Enum):
+    IMG_AUG_BATCH = "image.aug.Batch"
+    NP_ARRAY = "numpy.array"
+    EMPTY_LIST = "empty.list"
+    NP_ARRAYS = "numpy.array.list"
+    KPS_ON_IMAGE = "image.aug.KeyPointsOnImage"
+
 
 
 class KeyPoint(object):

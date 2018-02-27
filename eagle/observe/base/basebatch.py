@@ -268,3 +268,105 @@ class BackgroundAugmentor(object):
         This will alsofree their RAM."""
         for worker in self.workers:
             worker.terminate()
+
+
+class HooksImages(object):
+    """
+    Class to intervene with image augmentation runs.
+
+    This is e.g. useful to dynamically deactivate some augmenters.
+
+    Parameters
+    ----------
+    activator : None or callable, optional(default=None)
+        A function that gives permission to execute an augmenter.
+        The expected interface is
+            `f(images, augmenter, parents, default)`,
+        where `images` are the input images to augment, `augmenter` is the
+        instance of the augmenter to execute, `parents` are previously
+        executed augmenters and `default` is an expected default value to be
+        returned if the activator function does not plan to make a decision
+        for the given inputs.
+
+    propagator : None or callable, optional(default=None)
+        A function that gives permission to propagate the augmentation further
+        to the children of an augmenter. This happens after the activator.
+        In theory, an augmenter may augment images itself (if allowed by the
+        activator) and then execute child augmenters afterwards (if allowed by
+        the propagator). If the activator returned False, the propagation step
+        will never be executed.
+        The expected interface is
+            `f(images, augmenter, parents, default)`,
+        with all arguments having identical meaning to the activator.
+
+    preprocessor : None or callable, optional(default=None)
+        A function to call before an augmenter performed any augmentations.
+        The interface is
+            `f(images, augmenter, parents)`,
+        with all arguments having identical meaning to the activator.
+        It is expected to return the input images, optionally modified.
+
+    postprocessor : None or callable, optional(default=None)
+        A function to call after an augmenter performed augmentations.
+        The interface is the same as for the preprocessor.
+
+    Examples
+    --------
+    >>> seq = iaa.Sequential([
+    >>>     iaa.GaussianBlur(3.0, name="blur"),
+    >>>     iaa.Dropout(0.05, name="dropout"),
+    >>>     iaa.Affine(translate_px=-5, name="affine")
+    >>> ])
+    >>>
+    >>> def activator(images, augmenter, parents, default):
+    >>>     return False if augmenter.name in ["blur", "dropout"] else default
+    >>>
+    >>> seq_det = seq.to_deterministic()
+    >>> images_aug = seq_det.augment_images(images)
+    >>> heatmaps_aug = seq_det.augment_images(
+    >>>     heatmaps,
+    >>>     hooks=ia.HooksImages(activator=activator)
+    >>> )
+
+    This augments images and their respective heatmaps in the same way.
+    The heatmaps however are only modified by Affine, not by GaussianBlur or
+    Dropout.
+    """
+    def __init__(self, activator=None, propagator=None, preprocessor=None,
+                 postprocessor=None):
+        self.activator = activator
+        self.propagator = propagator
+        self.preprocessor = preprocessor
+        self.postprocessor = postprocessor
+
+    def is_activated(self, images, augmentor, parents, default):
+        """Returns whether an augmentor may be executed."""
+        if self.activator is None:
+            return default
+        else:
+            return self.activator(images, augmentor, parents, default)
+
+    def preprocess(self, images, augmentor, parents):
+        """A function to be called before  the augmentation of images starts."""
+        if self.preprocessor is None:
+            return images
+        else:
+            return self.preprocessor(images, augmentor, parents)
+
+    def postprocess(self, images, augmentor, parents):
+        """A function to be called after the augmentation of images was
+        performed."""
+        if self.postprocessor is None:
+            return images
+        else:
+            return self.postprocessor(images, augmentor, parents)
+
+
+class HooksKeyPoints(object):
+    """
+    Class to intervene with keypoint augmentation runs.
+    This is e.g. useful to dynamically deactivate some augments.
+    This class is currently the same as the one for images. This may or may
+    not change in the futures.
+    """
+    pass
