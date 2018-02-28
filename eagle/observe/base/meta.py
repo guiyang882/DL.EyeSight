@@ -8,6 +8,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import re
 import copy
 import warnings
 import numpy as np
@@ -523,6 +524,55 @@ class Augmentor:
     @abstractmethod
     def get_parameters(self):
         raise NotImplementedError()
+
+    def find_augmentors(self, func, parents=None, flat=True):
+        """Find augmentors that match a condition.
+        This function will compare this augmentor and all of its children with
+        a condition. The condition is a lambda function.
+
+        Examples:
+        ---------
+        >>> aug = iaa.Sequential([
+        >>>     nn.Fliplr(0.5, name="fliplr"),
+        >>>     nn.Flipud(0.5, name="flipud")
+        >>> ])
+        >>> print(aug.find_augmenters(lambda a, parents: a.name == "fliplr"))
+
+        This will return the first child augmenter (Fliplr instance).
+        """
+        if parents is None:
+            parents = []
+
+        result = []
+        if func(self, parents):
+            result.append(self)
+
+        subparents = parents + [self]
+        for lst in self.get_children_lists():
+            for aug in lst:
+                found = aug.find_augmentors(func, parents=subparents, flat=flat)
+                if len(found) > 0:
+                    if flat:
+                        result.extend(found)
+                    else:
+                        result.append(found)
+        return result
+
+    def find_augmentors_by_name(self, name, regex=False, flat=True):
+        return self.find_augmentors_by_names([name], regex=regex, flat=flat)
+
+    def find_augmentors_by_names(self, names, regex=False, flat=True):
+        if regex:
+            def compare(aug, parents):
+                for pattern in names:
+                    if re.match(pattern, aug.name):
+                        return True
+                return False
+            return self.find_augmentors(compare, flat=flat)
+        else:
+            return self.find_augmentors(
+                lambda aug, parents: aug.name in names,
+                flat=flat)
 
     def __repr__(self):
         return self.__str__()
