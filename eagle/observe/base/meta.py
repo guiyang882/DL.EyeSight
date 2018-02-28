@@ -470,7 +470,34 @@ class Augmentor:
         return aug
 
     def reseed(self, random_state=None, deterministic_too=False):
-        pass
+        """Reseed this augmentor and all of its children(if it has any).
+        This function is useful, when augmentatons are run in the background.
+        Parameters:
+            random_state: None or it or np.random.RandState, optional A
+            RandomState that is used to sample seeds per augmentor.
+            If int, the parameter will be used as a seed for a new RandomState.
+            If None, a new RandomState will automatically be creatd.
+            deterministic_too: bool, optional
+            Whether to also change the seed of an augmentor 'A', if 'A' is
+            deterministic. This is the case both when this augmentor object
+            is 'A' or one of its children is 'A'.
+        """
+        eu.do_assert(isinstance(deterministic_too, bool))
+        if random_state is None:
+            random_state = eu.current_random_state()
+        elif isinstance(random_state, np.random.RandomState):
+            pass
+        else:
+            random_state = eu.new_random_state(random_state)
+
+        if not self.deterministic or deterministic_too:
+            seed = random_state.randint(0, 10 ** 6, 1)[0]
+            self.random_state = eu.new_random_state(seed)
+
+        for lst in self.get_children_lists():
+            for aug in lst:
+                aug.reseed(random_state=random_state,
+                           deterministic_too=deterministic_too)
 
     def copy(self):
         return copy.copy(self)
