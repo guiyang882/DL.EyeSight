@@ -89,6 +89,41 @@ def is_single_number(val):
     return isinstance(val, numbers.Real) or isinstance(val, numbers.Integral)
 
 
+def is_integer_array(val):
+    return is_np_array(val) and issubclass(val.dtype.type, numbers.Integral)
+
+
+def copy_dtypes_for_restore(images):
+    return images.dtype if is_np_array(images) else [image.dtype for image in images]
+
+def restore_augmented_images_dtypes_(images, orig_dtypes):
+    if is_np_array(images):
+        images = images.astype(orig_dtypes)
+    else:
+        for i in range(len(images)):
+            images[i] = images[i].astype(orig_dtypes[i])
+
+def restore_augmented_images_dtypes(images, orig_dtypes):
+    if is_np_array(images):
+        images = np.copy(images)
+    else:
+        images = [np.copy(image) for image in images]
+    return restore_augmented_images_dtypes_(images, orig_dtypes)
+
+def clip_augmented_images_(images, minval, maxval):
+    if is_np_array(images):
+        np.clip(images, minval, maxval, out=images)
+    else:
+        for i in range(len(images)):
+            np.clip(images[i], minval, maxval, out=images[i])
+
+def clip_augmented_images(images, minval, maxval):
+    if is_np_array(images):
+        images = np.copy(images)
+    else:
+        images = [np.copy(image) for image in images]
+    return clip_augmented_images_(images, minval, maxval)
+
 # --------------------------------------------------------------------------------
 # Basic Function about the Image Utils
 # --------------------------------------------------------------------------------

@@ -331,31 +331,79 @@ class HooksImages(object):
     This augments images and their respective heatmaps in the same way.
     The heatmaps however are only modified by Affine, not by GaussianBlur or
     Dropout.
+
     """
-    def __init__(self, activator=None, propagator=None, preprocessor=None,
-                 postprocessor=None):
+
+    def __init__(self, activator=None, propagator=None, preprocessor=None, postprocessor=None):
         self.activator = activator
         self.propagator = propagator
         self.preprocessor = preprocessor
         self.postprocessor = postprocessor
 
     def is_activated(self, images, augmentor, parents, default):
-        """Returns whether an augmentor may be executed."""
+        """
+        Returns whether an augmenter may be executed.
+
+        Returns
+        -------
+        out : bool
+            If True, the augmenter may be executed. If False, it may
+            not be executed.
+
+        """
         if self.activator is None:
             return default
         else:
             return self.activator(images, augmentor, parents, default)
 
+    # TODO is a propagating hook necessary? seems to be covered by activated
+    # hook already
+    def is_propagating(self, images, augmentor, parents, default):
+        """
+        Returns whether an augmenter may call its children to augment an
+        image. This is independent of the augmenter itself possible changing
+        the image, without calling its children. (Most (all?) augmenters with
+        children currently dont perform any changes themselves.)
+
+        Returns
+        -------
+        out : bool
+            If True, the augmenter may be propagate to its children.
+            If False, it may not.
+
+        """
+        if self.propagator is None:
+            return default
+        else:
+            return self.propagator(images, augmentor, parents, default)
+
     def preprocess(self, images, augmentor, parents):
-        """A function to be called before  the augmentation of images starts."""
+        """
+        A function to be called before the augmentation of images starts (per
+        augmenter).
+
+        Returns
+        -------
+        out : (N,H,W,C) ndarray or (N,H,W) ndarray or list of (H,W,C) ndarray or list of (H,W) ndarray
+            The input images, optionally modified.
+
+        """
         if self.preprocessor is None:
             return images
         else:
             return self.preprocessor(images, augmentor, parents)
 
     def postprocess(self, images, augmentor, parents):
-        """A function to be called after the augmentation of images was
-        performed."""
+        """
+        A function to be called after the augmentation of images was
+        performed.
+
+        Returns
+        -------
+        out : (N,H,W,C) ndarray or (N,H,W) ndarray or list of (H,W,C) ndarray or list of (H,W) ndarray
+            The input images, optionally modified.
+
+        """
         if self.postprocessor is None:
             return images
         else:

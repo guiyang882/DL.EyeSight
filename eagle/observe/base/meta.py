@@ -179,7 +179,7 @@ class Augmentor:
         batch_loader.terminate()
         bg_augmentor.terminate()
 
-    def augment_image(self, image):
+    def augment_image(self, image, hooks=None):
         """Augment a single image.
         Parameters:
             image: (H,W,C) ndarray or (H,W) ndarray
@@ -190,9 +190,9 @@ class Augmentor:
         """
         eu.do_assert(image.ndim in [2, 3],
                      message="Expected image to have shape(H,W,C).")
-        return self.augment_images([image])[0]
+        return self.augment_images([image], hooks=hooks)[0]
 
-    def augment_images(self, images, parents=None):
+    def augment_images(self, images, parents=None, hooks=None):
         """Augment multiple images.
         Parameters:
             images: list of image(H,W,C)
@@ -245,16 +245,41 @@ class Augmentor:
                         input_added_axis.append(True)
                     else:
                         input_added_axis.append(False)
+                    images_copy.append(image_copy)
         else:
             raise Exception("Expected Images as one numpy array "
                             "or list/tuple of numpy arrays.")
 
-        hooks = HooksImages()
+        if hooks is None:
+            hooks = HooksImages()
         images_copy = hooks.preprocess(images_copy, augmentor=self, parents=parents)
         if hooks.is_activated(images_copy, augmentor=self, parents=parents,
                               default=self.activated):
             if len(images) > 0:
-                images_result = self._augment_images()
+                images_result = self._augment_images(
+                    images=images_copy,
+                    random_state=eu.copy_random_state(self.random_state),
+                    parents=parents,
+                    hooks=hooks)
+                eu.forward_random_state(self.random_state)
+            else:
+                images_result = images_copy
+        else:
+            images_result = images_copy
+
+        images_result = hooks.postprocess(
+            images_result, augmentor=self, parents=parents)
+
+        if input_type == "array":
+            if input_added_axis == True:
+                images_result = np.squeeze(images_result, axis=3)
+        if input_type == "list":
+            for i in range(len(images_result)):
+                if input_added_axis[i] == True:
+                    images_result[i] = np.squeeze(images_result[i], axis=2)
+        if self.deterministic:
+            self.random_state.set_state(state_orig)
+        return images_result
 
     @abstractmethod
     def _augment_images(self, images, random_state, parents, hooks):
@@ -582,3 +607,255 @@ class Augmentor:
         params_str = ", ".join([param.__str__() for param in params])
         return "%s(name=%s, parameters=%s, deterministic=%s)" % (
             self.__class__.__name__, self.name, params_str, self.deterministic)
+
+
+class Sequential(Augmentor, list):
+    """
+    List augmenter that may contain other augmenters to apply in sequence
+    or random order.
+
+    NOTE: You are *not* forced to use `Sequential` in order to use other
+    augmenters. Each augmenter can be used on its own, e.g the following
+    defines an augmenter for horizontal flips and then augments a single
+    image::
+        aug = iaa.Fliplr(0.5)
+        image_aug = aug.augment_image(image)
+
+    Parameters
+    ----------
+    children : Augmenter or list of Augmenter or None, optional(default=None)
+        The augmenters to apply to images.
+
+    random_order : bool, optional(default=False)
+        Whether to apply the child augmenters in random order per image.
+        The order is resampled for each image.
+
+    name : string, optional(default=None)
+        See `Augmenter.__init__()`
+
+    deterministic : bool, optional(default=False)
+        See `Augmenter.__init__()`
+
+    random_state : int or np.random.RandomState or None, optional(default=None)
+        See `Augmenter.__init__()`
+
+    Examples
+    --------
+    >>> seq = iaa.Sequential([
+    >>>     iaa.Fliplr(0.5),
+    >>>     iaa.Flipud(0.5)
+    >>> ])
+    >>> imgs_aug = seq.augment_images(imgs)
+
+    Calls always first the horizontal flip augmenter and then the vertical
+    flip augmenter (each having a probability of 50 percent to be used).
+
+    >>> seq = iaa.Sequential([
+    >>>     iaa.Fliplr(0.5),
+    >>>     iaa.Flipud(0.5)
+    >>> ], random_order=True)
+    >>> imgs_aug = seq.augment_images(imgs)
+
+    Calls sometimes first the horizontal flip augmenter and sometimes first the
+    vertical flip augmenter (each again with 50 percent probability to be used).
+
+    """
+
+    def __init__(self,
+                 children=None, random_order=False, name=None,
+                 deterministic=False, random_state=None):
+        Augmentor.__init__(self,
+                           name=name,
+                           deterministic=deterministic, random_state=random_state)
+        if children is None:
+            list.__init__(self, [])
+        elif isinstance(children, Augmentor):
+            list.__init__(self, [children])
+        elif eu.is_iterable(children):
+            list.__init__(self, children)
+        else:
+            raise Exception("Expected None or Augmenter or list of Augmenter, got %s." % (type(children),))
+        self.random_order = random_order
+
+    def _augment_images(self, images, random_state, parents, hooks):
+        if hooks.is_propagating(images, augmentor=self, parents=parents, default=True):
+            if self.random_order:
+                # for augmenter in self.children:
+                for index in random_state.permutation(len(self)):
+                    images = self[index].augment_images(
+                        images=images,
+                        parents=parents + [self],
+                        hooks=hooks
+                    )
+            else:
+                # for augmenter in self.children:
+                for augmenter in self:
+                    images = augmenter.augment_images(
+                        images=images,
+                        parents=parents + [self],
+                        hooks=hooks
+                    )
+        return images
+
+    def _augment_keypoints(self, keypoints_on_images, random_state, parents, hooks):
+        if hooks.is_propagating(keypoints_on_images, augmentor=self, parents=parents, default=True):
+            if self.random_order:
+                for index in random_state.permutation(len(self)):
+                    keypoints_on_images = self[index].augment_keypoints(
+                        keypoints_on_images=keypoints_on_images,
+                        parents=parents + [self],
+                        hooks=hooks
+                    )
+            else:
+                for augmenter in self:
+                    keypoints_on_images = augmenter.augment_keypoints(
+                        keypoints_on_images=keypoints_on_images,
+                        parents=parents + [self],
+                        hooks=hooks
+                    )
+        return keypoints_on_images
+
+    def _to_deterministic(self):
+        augs = [aug.to_deterministic() for aug in self]
+        seq = self.copy()
+        seq[:] = augs
+        seq.random_state = eu.new_random_state()
+        seq.deterministic = True
+        return seq
+
+    def get_parameters(self):
+        return []
+
+    def add(self, augmenter):
+        """Add an augmenter to the list of child augmenters.
+
+        Parameters
+        ----------
+        augmenter : Augmenter
+            The augmenter to add.
+        """
+        self.append(augmenter)
+
+    def get_children_lists(self):
+        return [self]
+
+    def __str__(self):
+        augs_str = ", ".join([aug.__str__() for aug in self])
+        return "Sequential(name=%s, augmenters=[%s], deterministic=%s)" % (self.name, augs_str, self.deterministic)
+
+
+class WithChannels(Augmentor):
+    """
+    Apply child augmenters to specific channels.
+
+    Let C be one or more child augmenters given to this augmenter.
+    Let H be a list of channels.
+    Let I be the input images.
+    Then this augmenter will pick the channels H from each image
+    in I (resulting in new images) and apply C to them.
+    The result of the augmentation will be merged back into the original
+    images.
+
+    Parameters
+    ----------
+    channels : integer or list of integers or None, optional(default=None)
+        Sets the channels to extract from each image.
+        If None, all channels will be used.
+
+    children : Augmenter or list of Augmenters or None, optional(default=None)
+        One or more augmenters to apply to images, after the channels
+        are extracted.
+
+    name : string, optional(default=None)
+        See `Augmenter.__init__()`
+
+    deterministic : bool, optional(default=False)
+        See `Augmenter.__init__()`
+
+    random_state : int or np.random.RandomState or None, optional(default=None)
+        See `Augmenter.__init__()`
+
+    Examples
+    --------
+    >>> aug = iaa.WithChannels([0], iaa.Add(10))
+
+    assuming input images are RGB, then this augmenter will add 10 only
+    to the first channel, i.e. make images more red.
+    """
+
+    def __init__(self,
+                 channels=None, children=None,
+                 name=None, deterministic=False, random_state=None):
+        super(WithChannels, self).__init__(
+            name=name, deterministic=deterministic, random_state=random_state)
+
+        if channels is None:
+            self.channels = None
+        elif eu.is_single_integer(channels):
+            self.channels = [channels]
+        elif eu.is_iterable(channels):
+            eu.do_assert(all([eu.is_single_integer(channel) for channel in channels]),
+                         "Expected integers as channels, got %s." % ([type(channel) for channel in channels],))
+            self.channels = channels
+        else:
+            raise Exception("Expected None, int or list of ints as channels, got %s." % (type(channels),))
+
+        if children is None:
+            self.children = Sequential([], name="%s-then" % (self.name,))
+        elif eu.is_iterable(children):
+            self.children = Sequential(children, name="%s-then" % (self.name,))
+        elif isinstance(children, Augmentor):
+            self.children = Sequential([children], name="%s-then" % (self.name,))
+        else:
+            raise Exception("Expected None, Augmenter or list/tuple of Augmenter as children, got %s." % (type(children),))
+
+    def _augment_images(self, images, random_state, parents, hooks):
+        result = images
+        if hooks.is_propagating(
+                images, augmentor=self, parents=parents, default=True):
+            if self.channels is None:
+                result = self.children.augment_images(
+                    images=images,
+                    parents=parents + [self],
+                    hooks=hooks
+                )
+            elif len(self.channels) == 0:
+                pass
+            else:
+                if eu.is_np_array(images):
+                    images_then_list = images[..., self.channels]
+                else:
+                    images_then_list = [image[..., self.channels] for image in images]
+
+                result_then_list = self.children.augment_images(
+                    images=images_then_list,
+                    parents=parents + [self],
+                    hooks=hooks
+                )
+
+                if eu.is_np_array(images):
+                    result[..., self.channels] = result_then_list
+                else:
+                    for i in range(len(images)):
+                        result[i][..., self.channels] = result_then_list[i]
+
+        return result
+
+    def _augment_keypoints(self, keypoints_on_images, random_state, parents, hooks):
+        return keypoints_on_images
+
+    def _to_deterministic(self):
+        aug = self.copy()
+        aug.children = aug.children.to_deterministic()
+        aug.deterministic = True
+        aug.random_state = eu.new_random_state()
+        return aug
+
+    def get_parameters(self):
+        return [self.channels]
+
+    def get_children_lists(self):
+        return [self.children]
+
+    def __str__(self):
+        return "WithChannels(channels=%s, name=%s, children=[%s], deterministic=%s)" % (self.channels, self.name, self.children, self.deterministic)
