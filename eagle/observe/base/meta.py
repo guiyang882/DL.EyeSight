@@ -8,18 +8,19 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import re
 import copy
+import re
 import warnings
-import numpy as np
 from abc import ABCMeta, abstractmethod
 
+import numpy as np
+
 import eagle.utils as eu
-from eagle.observe.base.basetype import BatchStatus
-from eagle.observe.base.basetype import KeyPoint, KeyPointsOnImage
-from eagle.observe.base.basetype import BoundingBox, BoundingBoxesOnImage
+from eagle.observe.base.basebatch import BackgroundAugmentor, Batch, BatchLoader
 from eagle.observe.base.basebatch import HooksImages, HooksKeyPoints
-from eagle.observe.base.basebatch import Batch, BatchLoader, BackgroundAugmentor
+from eagle.observe.base.basetype import BatchStatus
+from eagle.observe.base.basetype import BoundingBoxesOnImage
+from eagle.observe.base.basetype import KeyPointsOnImage
 
 
 class Augmentor:
@@ -81,7 +82,7 @@ class Augmentor:
         
         self.activated = True
         
-    def augment_batches(self, batches):
+    def augment_batches(self, batches, hooks=None, background=False):
         """
         Augment multiple batches of images.
 
@@ -111,7 +112,10 @@ class Augmentor:
         eu.do_assert(isinstance(batches, list))
         eu.do_assert(len(batches) > 0)
 
-        enum_batch_status = BatchStatus()
+        if background:
+            eu.do_assert(hooks is None,
+                         message="Hooks can not be used when background "
+                                 "augmentation is activated.")
 
         batches_normalized = []
         batches_original_dts = []
@@ -119,23 +123,23 @@ class Augmentor:
             if isinstance(batch, Batch):
                 batch.data = (i, batch.data)
                 batches_normalized.append(batch)
-                batches_original_dts.append(enum_batch_status.IMG_AUG_BATCH)
+                batches_original_dts.append(BatchStatus.IMG_AUG_BATCH)
             elif eu.is_np_array(batch):
                 eu.do_assert(batch.ndim in (3, 4),
                              message="Expected numpy array to have shape(N,H,"
                                      "W) or (N,H,W,C)")
                 batches_normalized.append(Batch(images=batch, data=i))
-                batches_original_dts.append(enum_batch_status.NP_ARRAY)
+                batches_original_dts.append(BatchStatus.NP_ARRAY)
             elif isinstance(batch, list):
                 if len(batch) == 0:
                     batches_normalized.append(Batch())
-                    batches_original_dts.append(enum_batch_status.EMPTY_LIST)
+                    batches_original_dts.append(BatchStatus.EMPTY_LIST)
                 elif eu.is_np_array(batch[0]):
                     batches_normalized.append(Batch(images=batch, data=i))
-                    batches_original_dts.append(enum_batch_status.NP_ARRAYS)
+                    batches_original_dts.append(BatchStatus.NP_ARRAYS)
                 elif isinstance(batch[0], KeyPointsOnImage):
                     batches_normalized.append(Batch(keypoints=batch, data=i))
-                    batches_original_dts.append(enum_batch_status.KPS_ON_IMAGE)
+                    batches_original_dts.append(BatchStatus.KPS_ON_IMAGE)
                 else:
                     raise Exception("Unknown datatype in batch[0]. "
                                     "Expected numpy array or imgaug.KeypointsOnImage")
@@ -148,36 +152,56 @@ class Augmentor:
             if isinstance(i, tuple):
                 i = i[0]
             dt_orig = batches_original_dts[i]
-            if dt_orig == enum_batch_status.IMG_AUG_BATCH:
+            if dt_orig == BatchStatus.IMG_AUG_BATCH:
                 batch_unnormalized = batch_aug
                 batch_unnormalized.data = batch_unnormalized.data[1]
-            elif dt_orig == enum_batch_status.NP_ARRAY:
+            elif dt_orig == BatchStatus.NP_ARRAY:
                 batch_unnormalized = batch_aug.images_aug
-            elif dt_orig == enum_batch_status.EMPTY_LIST:
+            elif dt_orig == BatchStatus.EMPTY_LIST:
                 batch_unnormalized = []
-            elif dt_orig == enum_batch_status.NP_ARRAYS:
+            elif dt_orig == BatchStatus.NP_ARRAYS:
                 batch_unnormalized = batch_aug.images_aug
-            elif dt_orig == enum_batch_status.KPS_ON_IMAGE:
+            elif dt_orig == BatchStatus.KPS_ON_IMAGE:
                 batch_unnormalized = batch_aug.keypoints_aug
             else:
                 raise Exception("Internal Error. Unexpected value in dt_orig")
             return batch_unnormalized
 
-        def load_batches():
-            for batch in batches_normalized:
-                yield batch
+        if not background:
+            for batch_normalized in batches_normalized:
+                batch_augment_images = batch_normalized.images is not None
+                batch_augment_keypoints = batch_normalized.keypoints is not None
 
-        batch_loader = BatchLoader(load_batches)
-        bg_augmentor = BackgroundAugmentor(batch_loader, self)
-        while True:
-            batch_aug = bg_augmentor.get_batch()
-            if batch_aug is None:
-                break
-            else:
-                batch_unnormalized = unnormalize_batch(batch_aug)
+                if batch_augment_images and batch_augment_keypoints:
+                    augseq_det = self.to_deterministic() if not self.deterministic else self
+                    batch_normalized.images_aug = augseq_det.augment_images(
+                        batch_normalized.images, hooks=hooks)
+                    batch_normalized.keypoints_aug = augseq_det.augment_keypoints(
+                        batch_normalized.keypoints, hooks=hooks)
+                elif batch_augment_images:
+                    batch_normalized.images_aug = self.augment_images(
+                        batch_normalized.images, hooks=hooks)
+                elif batch_augment_keypoints:
+                    batch_normalized.keypoints_aug = self.augment_keypoints(
+                        batch_normalized.keypoints, hooks=hooks)
+                batch_unnormalized = unnormalize_batch(batch_normalized)
                 yield batch_unnormalized
-        batch_loader.terminate()
-        bg_augmentor.terminate()
+        else:
+            def load_batches():
+                for batch in batches_normalized:
+                    yield batch
+
+            batch_loader = BatchLoader(load_batches)
+            bg_augmentor = BackgroundAugmentor(batch_loader, self)
+            while True:
+                batch_aug = bg_augmentor.get_batch()
+                if batch_aug is None:
+                    break
+                else:
+                    batch_unnormalized = unnormalize_batch(batch_aug)
+                    yield batch_unnormalized
+            batch_loader.terminate()
+            bg_augmentor.terminate()
 
     def augment_image(self, image, hooks=None):
         """Augment a single image.
@@ -388,8 +412,8 @@ class Augmentor:
         if hooks.is_activated(kps_on_imgs_copy, augmentor=self, parents=parents,
                 default=self.activated):
             if len(kps_on_imgs_copy) > 0:
-                kps_on_imgs_result = self._augment_images(
-                    images=kps_on_imgs_copy,
+                kps_on_imgs_result = self._augment_keypoints(
+                    kps_on_imgs_copy,
                     random_state=eu.copy_random_state(self.random_state),
                     parents=parents,
                     hooks=hooks)
@@ -408,8 +432,7 @@ class Augmentor:
         return kps_on_imgs_result
 
     @abstractmethod
-    def _augment_keypoints(self, keypoints_on_images, random_state, parents,
-                           hooks):
+    def _augment_keypoints(self, keypoints_on_images, random_state, parents, hooks):
         raise NotImplementedError()
 
     def augment_bounding_boxes(self, bounding_boxes_on_images, hooks=None):

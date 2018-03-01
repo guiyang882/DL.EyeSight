@@ -121,8 +121,8 @@ class BatchLoader(object):
         """
         return all([event.is_set() for event in self.finished_signals])
 
-    def _load_batches(self, load_batch_func, queue, finished_signal,
-                      join_signal, seedval):
+    def _load_batches(self, load_batch_func,
+                      queue, finished_signal, join_signal, seedval):
         if seedval is not None:
             random.seed(seedval)
             np.random.seed(seedval)
@@ -201,8 +201,7 @@ class BackgroundAugmentor(object):
         self.augment_images = True
         self.augment_keypoints = True
 
-        seeds = eu.current_random_state().randint(
-            0, 10 ** 6, size=(nb_workers, ))
+        seeds = eu.current_random_state().randint(0, 10**6, size=(nb_workers,))
         for i in range(nb_workers):
             worker = multiprocessing.Process(
                 target=self._augment_images_worker,
@@ -212,7 +211,8 @@ class BackgroundAugmentor(object):
             worker.start()
             self.workers.append(worker)
 
-    def _augment_images_worker(self, augseq, queue_source, queue_result,
+    def _augment_images_worker(self, augseq,
+                               queue_source, queue_result,
                                source_finished_signals, seedval):
         np.random.seed(seedval)
         random.seed(seedval)
@@ -229,11 +229,10 @@ class BackgroundAugmentor(object):
                 batch_augment_kps = batch.keypoints is not None and \
                                     self.augment_keypoints
                 if batch_augment_images and batch_augment_kps:
-                    augseq_det = augseq.to_deterministic() if not \
-                        augseq.deterministic else augseq
+                    augseq_det = augseq.to_deterministic() \
+                        if not augseq.deterministic else augseq
                     batch.images_aug = augseq_det.augment_images(batch.images)
-                    batch.keypoints_aug = augseq_det.augment_keypoints(
-                        batch.keypoints)
+                    batch.keypoints_aug = augseq_det.augment_keypoints(batch.keypoints)
                 elif batch_augment_images:
                     batch.images_aug = augseq.augment_images(batch.images)
                 elif batch_augment_kps:
@@ -241,6 +240,7 @@ class BackgroundAugmentor(object):
                         batch.keypoints)
                 """send augmented batch to ouput queue"""
                 batch_str = pickle.dumps(batch, protocol=-1)
+                queue_result.put(batch_str)
             except QueueEmpty:
                 if all([signal.is_set() for signal in source_finished_signals]):
                     queue_result.put(pickle.dumps(None, protocol=-1))
@@ -410,7 +410,7 @@ class HooksImages(object):
             return self.postprocessor(images, augmentor, parents)
 
 
-class HooksKeyPoints(object):
+class HooksKeyPoints(HooksImages):
     """
     Class to intervene with keypoint augmentation runs.
     This is e.g. useful to dynamically deactivate some augments.

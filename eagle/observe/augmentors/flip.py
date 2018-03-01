@@ -41,8 +41,8 @@ class Fliplr(Augmentor):
         samples = self.p.draw_samples((nb_images, ), random_state=random_state)
         for i, kps_oi in enumerate(keypoints_on_images):
             if samples[i] == 1:
-                width = keypoints_on_images.shape[1]
-                for kp in keypoints_on_images.keypoints:
+                width = kps_oi.shape[1]
+                for kp in kps_oi.keypoints:
                     kp.x = (width - 1) - kp.x
         return keypoints_on_images
 
@@ -75,8 +75,8 @@ class Flipud(Augmentor):
         samples = self.p.draw_samples((nb_images,), random_state=random_state)
         for i, kps_oi in enumerate(keypoints_on_images):
             if samples[i] == 1:
-                height = keypoints_on_images.shape[0]
-                for kp in keypoints_on_images.keypoints:
+                height = kps_oi.shape[0]
+                for kp in kps_oi.keypoints:
                     kp.y = (height - 1) - kp.y
         return keypoints_on_images
 
