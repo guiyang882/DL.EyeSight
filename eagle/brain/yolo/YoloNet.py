@@ -49,7 +49,7 @@ class YoloNet(BaseYoloNet):
 
         layer_id = 4
         conv = pool30
-        for i in range(4):
+        for _ in range(4):
             conv = self.conv2d(
                 "conv{}1".format(layer_id),
                 input=conv,
@@ -78,7 +78,7 @@ class YoloNet(BaseYoloNet):
 
         conv = self.max_pool(conv, kernel_size=[2, 2], stride=2)
 
-        for i in range(2):
+        for _ in range(2):
             conv = self.conv2d(
                 "conv{}1".format(layer_id),
                 input=conv,
@@ -104,7 +104,7 @@ class YoloNet(BaseYoloNet):
             stride=2)
         layer_id += 1
 
-        for i in range(2):
+        for _ in range(2):
             conv = self.conv2d(
                 "conv{}0".format(layer_id),
                 input=conv,
@@ -120,10 +120,10 @@ class YoloNet(BaseYoloNet):
             fc1,
             in_dim=4096,
             out_dim=self.cell_size ** 2 * (
-                self.num_calsses + 5 * self.boxes_per_cell),
+                self.num_classes + 5 * self.boxes_per_cell),
             leaky=False)
         predicts = tf.reshape(
             fc2,
             shape=[tf.shape(fc2)[0], self.cell_size, self.cell_size,
-                   self.num_calsses + 5 * self.boxes_per_cell])
+                   self.num_classes + 5 * self.boxes_per_cell])
         return predicts

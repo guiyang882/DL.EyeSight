@@ -23,7 +23,7 @@ class BaseYoloNet(object):
 
         # extract the parameters
         self.image_size = int(common_params["image_size"])
-        self.num_calsses = int(common_params["num_classes"])
+        self.num_classes = int(common_params["num_classes"])
         self.batch_size = int(common_params["batch_size"])
 
         self.cell_size = int(net_params["cell_size"])
