@@ -21,7 +21,14 @@ class BaseYoloNet(object):
         if not isinstance(net_params, dict):
             raise ValueError("net_params' type should be dict")
 
-        self.weight_decay = 0.0
+        # extract the parameters
+        self.image_size = int(common_params["image_size"])
+        self.num_calsses = int(common_params["num_classes"])
+        self.batch_size = int(common_params["batch_size"])
+
+        self.cell_size = int(net_params["cell_size"])
+        self.boxes_per_cell = int(net_params["boxes_per_cell"])
+        self.weight_decay = float(net_params["weight_decay"])
 
         self.pretrained_collection = list()
         self.trainable_collection = list()
