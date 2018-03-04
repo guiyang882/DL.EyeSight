@@ -127,3 +127,58 @@ class YoloNet(BaseYoloNet):
             shape=[tf.shape(fc2)[0], self.cell_size, self.cell_size,
                    self.num_classes + 5 * self.boxes_per_cell])
         return predicts
+
+    def loss(self, predicts, labels, objects_num):
+        """Add Loss to all the trainable variable
+        Parameters:
+            predicts: 4-D tensor
+            [batch_size, cell_size, cell_size, 5 * boxes_per_cell]
+            labels: 3-D tensor
+            [batch_size, max_objects, 5]
+            objects_num: 1-D tensor [batch_size]
+        """
+        class_loss = tf.constant(0.0, tf.float32)
+        object_loss = tf.constant(0.0, tf.float32)
+        noobject_loss = tf.constant(0.0, tf.float32)
+        coord_loss = tf.constant(0.0, tf.float32)
+        loss = [0, 0, 0, 0]
+
+        for i in range(self.batch_size):
+            predict = predicts[i, :, :, :]
+            label = labels[i, :, :]
+            object_num = objects_num[i]
+            nilboy = tf.ones([7, 7, 2])
+            tuple_results = tf.while_loop(
+                cond=self.loss_cond,
+                body=self.loss_body,
+                loop_vars=[
+                    tf.constant(0),
+                    object_num,
+                    [class_loss, object_loss, noobject_loss, coord_loss],
+                    predict,
+                    label,
+                    nilboy
+                ]
+            )
+            for j in range(len(loss)):
+                loss[j] += tuple_results[2][j]
+            nilboy = tuple_results[5]
+
+        tf.add_to_collection(
+            "losses",
+            (loss[0] + loss[1] + loss[2] + loss[3]) / self.batch_size)
+        tf.summary.scalar("class_loss", loss[0] / self.batch_size)
+        tf.summary.scalar("object_loss", loss[1] / self.batch_size)
+        tf.summary.scalar("noobject_loss", loss[2] / self.batch_size)
+        tf.summary.scalar("coord_loss", loss[3] / self.batch_size)
+        tf.summary.scalar("weight_loss",
+                          tf.add_n(tf.get_collection("losses")) -
+                          tf.get_collection("losses"))
+        return tf.add_n(tf.get_collection("losses"), name="total_loss"), nilboy
+
+    def loss_cond(self, num, object_num, loss, predicts, labels, nilboy):
+        pass
+
+    def loss_body(self, num, object_num, loss, predicts, labels, nilboy):
+        pass
+    
