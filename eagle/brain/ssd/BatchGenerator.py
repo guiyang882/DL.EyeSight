@@ -113,7 +113,7 @@ class BatchGenerator:
                  labels=None):
         '''
         This class provides parser methods that you call separately after calling the constructor to assemble
-        the list of image filenames and the list of labels for the dataset from CSV or XML files. If you already
+        the list of image filenames and the list of labels for the datasource from CSV or XML files. If you already
         have the image filenames and labels in asuitable format (see argument descriptions below), you can pass
         them right here in the constructor, in which case you do not need to call any of the parser methods afterwards.
         In case you would like not to load any labels at all, simply pass a list of image filenames here.
@@ -146,7 +146,7 @@ class BatchGenerator:
                 If `filenames_type` is not 'text', then this argument is irrelevant. Defaults to `None`.
             labels (string or list, optional): `None` or either a Python list/tuple or a string representing
                 the path to a pickled file containing a list/tuple. The list/tuple must contain Numpy arrays
-                that represent the labels of the dataset.
+                that represent the labels of the datasource.
         '''
         # These are the variables we always need
         self.include_classes = None
@@ -220,14 +220,14 @@ class BatchGenerator:
                 image file name, class ID, xmin, xmax, ymin, ymax in the input CSV file. The expected strings
                 are 'image_name', 'xmin', 'xmax', 'ymin', 'ymax', 'class_id'. Defaults to `None`.
             include_classes (list, optional): Either 'all' or a list of integers containing the class IDs that
-                are to be included in the dataset. Defaults to 'all', in which case all boxes will be included
-                in the dataset.
+                are to be included in the datasource. Defaults to 'all', in which case all boxes will be included
+                in the datasource.
             random_sample (float, optional): Either `False` or a float in `[0,1]`. If this is `False`, the
-                full dataset will be used by the generator. If this is a float in `[0,1]`, a randomly sampled
-                fraction of the dataset will be used, where `random_sample` is the fraction of the dataset
-                to be used. For example, if `random_sample = 0.2`, 20 precent of the dataset will be randomly selected,
+                full datasource will be used by the generator. If this is a float in `[0,1]`, a randomly sampled
+                fraction of the datasource will be used, where `random_sample` is the fraction of the datasource
+                to be used. For example, if `random_sample = 0.2`, 20 precent of the datasource will be randomly selected,
                 the rest will be ommitted. The fraction refers to the number of images, not to the number
-                of boxes, i.e. each image that will be added to the dataset will always be added with all
+                of boxes, i.e. each image that will be added to the datasource will always be added with all
                 of its boxes. Defaults to `False`.
             ret (bool, optional): Whether or not the image filenames and labels are to be returned.
                 Defaults to `False`.
@@ -257,7 +257,7 @@ class BatchGenerator:
             csvread = csv.reader(csvfile, delimiter=',')
             next(csvread) # Skip the header row.
             for row in csvread: # For every line (i.e for every bounding box) in the CSV file...
-                if self.include_classes == 'all' or int(row[self.input_format.index('class_id')].strip()) in self.include_classes: # If the class_id is among the classes that are to be included in the dataset...
+                if self.include_classes == 'all' or int(row[self.input_format.index('class_id')].strip()) in self.include_classes: # If the class_id is among the classes that are to be included in the datasource...
                     box = [] # Store the box class and coordinates here
                     box.append(row[self.input_format.index('image_name')].strip()) # Select the image name column in the input format and append its content to `box`
                     for element in self.box_output_format: # For each element in the output format (where the elements are the class ID and the four box coordinates)...
@@ -277,7 +277,7 @@ class BatchGenerator:
             if box[0] == current_file: # If this box (i.e. this line of the CSV file) belongs to the current image file
                 current_labels.append(box[1:])
                 if i == len(data)-1: # If this is the last line of the CSV file
-                    if random_sample: # In case we're not using the full dataset, but a random sample of it.
+                    if random_sample: # In case we're not using the full datasource, but a random sample of it.
                         p = np.random.uniform(0,1)
                         if p >= (1-random_sample):
                             self.labels.append(np.stack(current_labels, axis=0))
@@ -286,7 +286,7 @@ class BatchGenerator:
                         self.labels.append(np.stack(current_labels, axis=0))
                         self.filenames.append(os.path.join(self.images_path, current_file))
             else: # If this box belongs to a new image file
-                if random_sample: # In case we're not using the full dataset, but a random sample of it.
+                if random_sample: # In case we're not using the full datasource, but a random sample of it.
                     p = np.random.uniform(0,1)
                     if p >= (1-random_sample):
                         self.labels.append(np.stack(current_labels, axis=0))
@@ -298,7 +298,7 @@ class BatchGenerator:
                 current_file = box[0]
                 current_labels.append(box[1:])
                 if i == len(data)-1: # If this is the last line of the CSV file
-                    if random_sample: # In case we're not using the full dataset, but a random sample of it.
+                    if random_sample: # In case we're not using the full datasource, but a random sample of it.
                         p = np.random.uniform(0,1)
                         if p >= (1-random_sample):
                             self.labels.append(np.stack(current_labels, axis=0))
@@ -338,8 +338,8 @@ class BatchGenerator:
                 `name` XML tags. Must include the class `background` as the first list item. The order of this list
                 defines the class IDs. Defaults to the list of Pascal VOC classes in alphabetical order.
             include_classes (list, optional): Either 'all' or a list of integers containing the class IDs that
-                are to be included in the dataset. Defaults to 'all', in which case all boxes will be included
-                in the dataset.
+                are to be included in the datasource. Defaults to 'all', in which case all boxes will be included
+                in the datasource.
             exclude_truncated (bool, optional): If `True`, excludes boxes that are labeled as 'truncated'.
                 Defaults to `False`.
             exclude_difficult (bool, optional): If `True`, excludes boxes that are labeled as 'difficult'.
@@ -361,7 +361,7 @@ class BatchGenerator:
         self.labels = []
 
         for image_path, image_set_path, annotations_path in zip(self.images_paths, self.image_set_paths, self.annotations_paths):
-            # Parse the image set that so that we know all the IDs of all the images to be included in the dataset
+            # Parse the image set that so that we know all the IDs of all the images to be included in the datasource
             with open(image_set_path) as f:
                 image_ids = [line.strip() for line in f]
 
@@ -371,7 +371,7 @@ class BatchGenerator:
                 with open(os.path.join(annotations_path, image_id+'.xml')) as f:
                     soup = BeautifulSoup(f, 'xml')
 
-                folder = soup.folder.text # In case we want to return the folder in addition to the image file name. Relevant for determining which dataset an image belongs to.
+                folder = soup.folder.text # In case we want to return the folder in addition to the image file name. Relevant for determining which datasource an image belongs to.
                 filename = soup.filename.text
                 self.filenames.append(os.path.join(image_path, filename))
 
@@ -382,7 +382,7 @@ class BatchGenerator:
                 for obj in objects:
                     class_name = obj.find('name').text
                     class_id = self.classes.index(class_name)
-                    # Check if this class is supposed to be included in the dataset
+                    # Check if this class is supposed to be included in the datasource
                     if (not self.include_classes == 'all') and (not class_id in self.include_classes): continue
                     # pose = obj.pose.text
                     pose = 'Unknown'
@@ -422,7 +422,7 @@ class BatchGenerator:
         Writes the current `filenames` and `labels` lists to the specified files.
         This is particularly useful for large datasets with annotations that are
         parsed from XML files, which can take quite long. If you'll be using the
-        same dataset repeatedly, you don't want to have to parse the XML label
+        same datasource repeatedly, you don't want to have to parse the XML label
         files every time.
         Arguments:
             filenames_path (str): The path under which to save the filenames pickle.
@@ -471,7 +471,7 @@ class BatchGenerator:
         All conversions and transforms default to `False`.
         Arguments:
             batch_size (int, optional): The size of the batches to be generated. Defaults to 32.
-            shuffle (bool, optional): Whether or not to shuffle the dataset before each pass. Defaults to `True`.
+            shuffle (bool, optional): Whether or not to shuffle the datasource before each pass. Defaults to `True`.
                 This option should always be `True` during training, but it can be useful to turn shuffling off
                 for debugging or if you're using the generator for prediction.
             train (bool, optional): Whether or not the generator is used in training mode. If `True`, then the labels
@@ -938,7 +938,7 @@ class BatchGenerator:
     def get_n_samples(self):
         '''
         Returns:
-            The number of image files in the initialized dataset.
+            The number of image files in the initialized datasource.
         '''
         return len(self.filenames)
 

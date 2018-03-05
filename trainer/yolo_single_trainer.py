@@ -37,7 +37,7 @@ argparser = argparse.ArgumentParser(
 argparser.add_argument(
     '-d',
     '--data_path',
-    help='path to HDF5 file containing pascal voc dataset',
+    help='path to HDF5 file containing pascal voc datasource',
     default='/Volumes/projects/repos/VOC.SOURCE.DATA/VOCdevkit/pascal_voc_07_12.hdf5')
 
 argparser.add_argument(

@@ -28,7 +28,7 @@ classes = [
 ]
 
 parser = argparse.ArgumentParser(
-    description='Convert Pascal VOC 2007+2012 detection dataset to Numpy.')
+    description='Convert Pascal VOC 2007+2012 detection datasource to Numpy.')
 parser.add_argument(
     '-p',
     '--path_to_voc',
@@ -44,7 +44,7 @@ def get_boxes_for_id(voc_path, year, image_id):
     voc_path : str
         Path to VOCdevkit directory.
     year : str
-        Year of dataset containing image. Either '2007' or '2012'.
+        Year of datasource containing image. Either '2007' or '2012'.
     image_id : str
         Pascal VOC identifier for given image.
 
@@ -83,7 +83,7 @@ def get_image_for_id(voc_path, year, image_id):
     voc_path : str
         Path to VOCdevkit directory.
     year : str
-        Year of dataset containing image. Either '2007' or '2012'.
+        Year of datasource containing image. Either '2007' or '2012'.
     image_id : str
         Pascal VOC identifier for given image.
 

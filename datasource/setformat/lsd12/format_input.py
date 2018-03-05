@@ -22,11 +22,10 @@ from importlib import reload
 reload(sys)
 # print(sys.path)
 
-import random
 import cv2
 
-from dataset import tools
-from dataset.lsd12 import label_config as config
+from datasource.utils import tools
+from datasource.setformat.lsd12 import label_config as config
 
 
 nwpu_voc_dir = "/Volumes/projects/repos/RSI/NWPUVHR10/NWPUVOCFORMAT/"

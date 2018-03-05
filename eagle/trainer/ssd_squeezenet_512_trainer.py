@@ -32,7 +32,7 @@ img_height = 512 # Height of the input images
 img_width = 512 # Width of the input images
 img_channels = 3 # Number of color channels of the input images
 n_classes = 21 # Number of classes including the background class, e.g. 21 for the Pascal VOC datasets
-scales = [0.1, 0.2, 0.37, 0.54, 0.71, 0.88, 1.05] # The anchor box scaling factors used in the original SSD300 for the Pascal VOC datasets, the factors for the MS COCO dataset are smaller, namely [0.07, 0.15, 0.33, 0.51, 0.69, 0.87, 1.05]
+scales = [0.1, 0.2, 0.37, 0.54, 0.71, 0.88, 1.05] # The anchor box scaling factors used in the original SSD300 for the Pascal VOC datasets, the factors for the MS COCO datasource are smaller, namely [0.07, 0.15, 0.33, 0.51, 0.69, 0.87, 1.05]
 aspect_ratios = [[0.5, 1.0, 2.0],
                  [1.0/3.0, 0.5, 1.0, 2.0, 3.0],
                  [1.0/3.0, 0.5, 1.0, 2.0, 3.0],

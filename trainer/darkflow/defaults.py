@@ -20,7 +20,7 @@ class argHandler(dict):
         self.define('imgdir', '../sample_img/', 'path to testing directory with images')
         self.define('binary', '../bin/', 'path to .weights directory')
         self.define('config', './cfg/', 'path to .cfg directory')
-        self.define('dataset', '../pascal/VOCdevkit/IMG/', 'path to dataset directory')
+        self.define('datasource', '../pascal/VOCdevkit/IMG/', 'path to datasource directory')
         self.define('labels', './darkflow/cfg/labels.txt', 'path to labels file')
         self.define('backup', '../ckpt/', 'path to backup folder')
         self.define('summary', '../summary/', 'path to TensorBoard summaries directory')
