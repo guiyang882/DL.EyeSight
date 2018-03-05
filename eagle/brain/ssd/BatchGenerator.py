@@ -113,8 +113,8 @@ class BatchGenerator:
                  labels=None):
         '''
         This class provides parser methods that you call separately after calling the constructor to assemble
-        the list of image filenames and the list of labels for the datasource from CSV or XML files. If you already
-        have the image filenames and labels in asuitable format (see argument descriptions below), you can pass
+        the list of image filenames and the list of labels for the datum from CSV or XML files. If you already
+        have the image filenames and labels in asuitable tools (see argument descriptions below), you can pass
         them right here in the constructor, in which case you do not need to call any of the parser methods afterwards.
         In case you would like not to load any labels at all, simply pass a list of image filenames here.
         Arguments:
@@ -123,7 +123,7 @@ class BatchGenerator:
                 'xmin', 'xmax', 'ymin', 'ymax', 'class_id'. If you want to train the model, this
                 must be the order that the box encoding class requires as input. Defaults to
                 `['class_id', 'xmin', 'xmax', 'ymin', 'ymax']`. Note that even though the parser methods are
-                able to produce different output formats, the SSDBoxEncoder currently requires the format
+                able to produce different output formats, the SSDBoxEncoder currently requires the tools
                 `['class_id', 'xmin', 'xmax', 'ymin', 'ymax']`. This list only specifies the five box parameters
                 that are relevant as training targets, a list of filenames is generated separately.
             filenames (string or list, optional): `None` or either a Python list/tuple or a string representing
@@ -146,7 +146,7 @@ class BatchGenerator:
                 If `filenames_type` is not 'text', then this argument is irrelevant. Defaults to `None`.
             labels (string or list, optional): `None` or either a Python list/tuple or a string representing
                 the path to a pickled file containing a list/tuple. The list/tuple must contain Numpy arrays
-                that represent the labels of the datasource.
+                that represent the labels of the datum.
         '''
         # These are the variables we always need
         self.include_classes = None
@@ -220,14 +220,14 @@ class BatchGenerator:
                 image file name, class ID, xmin, xmax, ymin, ymax in the input CSV file. The expected strings
                 are 'image_name', 'xmin', 'xmax', 'ymin', 'ymax', 'class_id'. Defaults to `None`.
             include_classes (list, optional): Either 'all' or a list of integers containing the class IDs that
-                are to be included in the datasource. Defaults to 'all', in which case all boxes will be included
-                in the datasource.
+                are to be included in the datum. Defaults to 'all', in which case all boxes will be included
+                in the datum.
             random_sample (float, optional): Either `False` or a float in `[0,1]`. If this is `False`, the
-                full datasource will be used by the generator. If this is a float in `[0,1]`, a randomly sampled
-                fraction of the datasource will be used, where `random_sample` is the fraction of the datasource
-                to be used. For example, if `random_sample = 0.2`, 20 precent of the datasource will be randomly selected,
+                full datum will be used by the generator. If this is a float in `[0,1]`, a randomly sampled
+                fraction of the datum will be used, where `random_sample` is the fraction of the datum
+                to be used. For example, if `random_sample = 0.2`, 20 precent of the datum will be randomly selected,
                 the rest will be ommitted. The fraction refers to the number of images, not to the number
-                of boxes, i.e. each image that will be added to the datasource will always be added with all
+                of boxes, i.e. each image that will be added to the datum will always be added with all
                 of its boxes. Defaults to `False`.
             ret (bool, optional): Whether or not the image filenames and labels are to be returned.
                 Defaults to `False`.
@@ -259,9 +259,9 @@ class BatchGenerator:
             for row in csvread: # For every line (i.e for every bounding box) in the CSV file...
                 if self.include_classes == 'all' or int(row[self.input_format.index('class_id')].strip()) in self.include_classes: # If the class_id is among the classes that are to be included in the datasource...
                     box = [] # Store the box class and coordinates here
-                    box.append(row[self.input_format.index('image_name')].strip()) # Select the image name column in the input format and append its content to `box`
-                    for element in self.box_output_format: # For each element in the output format (where the elements are the class ID and the four box coordinates)...
-                        box.append(int(row[self.input_format.index(element)].strip())) # ...select the respective column in the input format and append it to `box`.
+                    box.append(row[self.input_format.index('image_name')].strip()) # Select the image name column in the input tools and append its content to `box`
+                    for element in self.box_output_format: # For each element in the output tools (where the elements are the class ID and the four box coordinates)...
+                        box.append(int(row[self.input_format.index(element)].strip())) # ...select the respective column in the input tools and append it to `box`.
                     data.append(box)
 
         data = sorted(data) # The data needs to be sorted, otherwise the next step won't give the correct result
@@ -326,20 +326,20 @@ class BatchGenerator:
                   ret=False):
         '''
         This is an XML parser for the Pascal VOC datasets. It might be applicable to other datasets with minor changes to
-        the code, but in its current form it expects the data format and XML tags of the Pascal VOC datasets.
+        the code, but in its current form it expects the data tools and XML tags of the Pascal VOC datasets.
         Arguments:
             images_paths (str, optional):
             annotations_paths (str, optional): The path to the directory that contains the annotation XML files for
                 the images. The directory must contain one XML file per image and name of the XML file must be the
-                image ID. The content of the XML files must be in the Pascal VOC format. Defaults to `None`.
+                image ID. The content of the XML files must be in the Pascal VOC tools. Defaults to `None`.
             image_set_paths (str, optional): The path to the text file with the image
                 set to be loaded. This text file simply contains one image ID per line and nothing else. Defaults to `None`.
             classes (list, optional): A list containing the names of the object classes as found in the
                 `name` XML tags. Must include the class `background` as the first list item. The order of this list
                 defines the class IDs. Defaults to the list of Pascal VOC classes in alphabetical order.
             include_classes (list, optional): Either 'all' or a list of integers containing the class IDs that
-                are to be included in the datasource. Defaults to 'all', in which case all boxes will be included
-                in the datasource.
+                are to be included in the datum. Defaults to 'all', in which case all boxes will be included
+                in the datum.
             exclude_truncated (bool, optional): If `True`, excludes boxes that are labeled as 'truncated'.
                 Defaults to `False`.
             exclude_difficult (bool, optional): If `True`, excludes boxes that are labeled as 'difficult'.
@@ -422,7 +422,7 @@ class BatchGenerator:
         Writes the current `filenames` and `labels` lists to the specified files.
         This is particularly useful for large datasets with annotations that are
         parsed from XML files, which can take quite long. If you'll be using the
-        same datasource repeatedly, you don't want to have to parse the XML label
+        same datum repeatedly, you don't want to have to parse the XML label
         files every time.
         Arguments:
             filenames_path (str): The path under which to save the filenames pickle.
@@ -471,14 +471,14 @@ class BatchGenerator:
         All conversions and transforms default to `False`.
         Arguments:
             batch_size (int, optional): The size of the batches to be generated. Defaults to 32.
-            shuffle (bool, optional): Whether or not to shuffle the datasource before each pass. Defaults to `True`.
+            shuffle (bool, optional): Whether or not to shuffle the datum before each pass. Defaults to `True`.
                 This option should always be `True` during training, but it can be useful to turn shuffling off
                 for debugging or if you're using the generator for prediction.
             train (bool, optional): Whether or not the generator is used in training mode. If `True`, then the labels
-                will be transformed into the format that the SSD cost function requires. Otherwise,
-                the output format of the labels is identical to the input format. Defaults to `True`.
+                will be transformed into the tools that the SSD cost function requires. Otherwise,
+                the output tools of the labels is identical to the input tools. Defaults to `True`.
             ssd_box_encoder (SSDBoxEncoder, optional): Only required if `train = True`. An SSDBoxEncoder object
-                to encode the ground truth labels to the required format for training an SSD model.
+                to encode the ground truth labels to the required tools for training an SSD model.
             equalize (bool, optional): If `True`, performs histogram equalization on the images.
                 This can improve contrast and lead the improved model performance.
             brightness (tuple, optional): `False` or a tuple containing three floats, `(min, max, prob)`.
@@ -526,7 +526,7 @@ class BatchGenerator:
                 with the number of pixels to crop off of each side of the images.
                 The targets are adjusted accordingly. Note: Cropping happens before resizing.
             resize (tuple, optional): `False` or a tuple of 2 integers for the desired output
-                size of the images in pixels. The expected format is `(height, width)`.
+                size of the images in pixels. The expected tools is `(height, width)`.
                 The box coordinates are adjusted accordingly. Note: Resizing happens after cropping.
             gray (bool, optional): If `True`, converts the images to grayscale. Note that the resulting grayscale
                 images have shape `(height, width, 1)`.
@@ -555,11 +555,11 @@ class BatchGenerator:
             that contains the file names of the images in the batch. This is the case if `train==False`
             and labels are not available.
             (3) a 2-tuple containing a Numpy array that contains the images and another Numpy array with the
-            labels in the format that `SSDBoxEncoder.encode_y()` returns, namely an array with shape
+            labels in the tools that `SSDBoxEncoder.encode_y()` returns, namely an array with shape
             `(batch_size, #boxes, #classes + 4 + 4 + 4)`, where `#boxes` is the total number of
             boxes predicted by the model per image and the last axis contains
             `[one-hot vector for the classes, 4 ground truth coordinate offsets, 4 anchor box coordinates, 4 variances]`.
-            The format and order of the box coordinates is according to the `box_output_format` that was specified
+            The tools and order of the box coordinates is according to the `box_output_format` that was specified
             in the `BachtGenerator` constructor.
         '''
 
@@ -904,7 +904,7 @@ class BatchGenerator:
                 batch_X.pop(j)
                 batch_y.pop(j) # This isn't efficient, but this should hopefully not need to be done often anyway.
 
-            if train: # During training we need the encoded labels instead of the format that `batch_y` has
+            if train: # During training we need the encoded labels instead of the tools that `batch_y` has
                 if ssd_box_encoder is None:
                     raise ValueError("`ssd_box_encoder` cannot be `None` in training mode.")
                 if diagnostics:
@@ -938,7 +938,7 @@ class BatchGenerator:
     def get_n_samples(self):
         '''
         Returns:
-            The number of image files in the initialized datasource.
+            The number of image files in the initialized datum.
         '''
         return len(self.filenames)
 
@@ -978,7 +978,7 @@ class BatchGenerator:
         Returns:
             `None`, but saves all processed images as JPEG files to the specified destination
             directory and generates a `labels.csv` CSV file that is saved to the same directory.
-            The format of the lines in the destination CSV file is the same as that of the
+            The tools of the lines in the destination CSV file is the same as that of the
             source CSV file, i.e. `[frame, xmin, xmax, ymin, ymax, class_id]`.
         '''
 
@@ -1134,7 +1134,7 @@ class BatchGenerator:
             del img
             gc.collect()
 
-            # Transform the labels back to the original CSV file format:
+            # Transform the labels back to the original CSV file tools:
             # One line per ground truth box, i.e. possibly multiple lines per image
             for target in targets:
                 target = list(target)

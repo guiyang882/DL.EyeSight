@@ -48,9 +48,9 @@ class AnchorBoxes(Layer):
                 to be precise) for the encoded predicted box coordinates. A variance value of 1.0 would apply
                 no scaling at all to the predictions, while values in (0,1) upscale the encoded predictions and values greater
                 than 1.0 downscale the encoded predictions. If you want to reproduce the configuration of the original SSD,
-                set this to `[0.1, 0.1, 0.2, 0.2]`, provided the coordinate format is 'centroids'. Defaults to `[1.0, 1.0, 1.0, 1.0]`.
-        coords (str, optional): The box coordinate format to be used. Can be either 'centroids' for the format
-                `(cx, cy, w, h)` (box center coordinates, width, and height) or 'minmax' for the format
+                set this to `[0.1, 0.1, 0.2, 0.2]`, provided the coordinate tools is 'centroids'. Defaults to `[1.0, 1.0, 1.0, 1.0]`.
+        coords (str, optional): The box coordinate tools to be used. Can be either 'centroids' for the tools
+                `(cx, cy, w, h)` (box center coordinates, width, and height) or 'minmax' for the tools
                 `(xmin, xmax, ymin, ymax)`. Defaults to 'centroids'.
         normalize_coords (bool, optional): Set to `True` if the model uses relative instead of absolute coordinates,
                 i.e. if the model predicts box coordinates within [0,1] instead of absolute coordinates. Defaults to `False`.

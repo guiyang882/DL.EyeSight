@@ -45,8 +45,8 @@ def convert_coordinates(tensor, start_index, conversion='minmax2centroids'):
     Convert coordinates for axis-aligned 2D boxes between two coordinate formats.
     Creates a copy of `tensor`, i.e. does not operate in place. Currently there are
     two supported coordinate formats that can be converted from and to each other:
-        1) (xmin, xmax, ymin, ymax) - the 'minmax' format
-        2) (cx, cy, w, h) - the 'centroids' format
+        1) (xmin, xmax, ymin, ymax) - the 'minmax' tools
+        2) (cx, cy, w, h) - the 'centroids' tools
     Note that converting from one of the supported formats to another and back is
     an identity operation up to possible rounding errors for integer tensors.
     Arguments:
@@ -95,7 +95,7 @@ def greedy_nms(y_pred_decoded, iou_threshold=0.45, coords='minmax'):
             is a list of length `n` where each list element is a 2D Numpy array.
             For a batch item with `k` predicted boxes this 2D Numpy array has
             shape `(k, 6)`, where each row contains the coordinates of the respective
-            box in the format `[class_id, score, xmin, xmax, ymin, ymax]`.
+            box in the tools `[class_id, score, xmin, xmax, ymin, ymax]`.
             Technically, the number of columns doesn't have to be 6, it can be
             arbitrary as long as the first four elements of each row are
             `xmin`, `xmax`, `ymin`, `ymax` (in this order) and the last element
@@ -105,10 +105,10 @@ def greedy_nms(y_pred_decoded, iou_threshold=0.45, coords='minmax'):
             greater than `iou_threshold` with a locally maximal box will be removed
             from the set of predictions, where 'maximal' refers to the box score.
             Defaults to 0.45 following the paper.
-        coords (str, optional): The coordinate format of `y_pred_decoded`.
+        coords (str, optional): The coordinate tools of `y_pred_decoded`.
             Can be one of the formats supported by `iou()`. Defaults to 'minmax'.
     Returns:
-        The predictions after removing non-maxima. The format is the same as the input format.
+        The predictions after removing non-maxima. The tools is the same as the input tools.
     '''
     y_pred_decoded_nms = []
     for batch_item in y_pred_decoded: # For the labels of each batch item...
@@ -169,8 +169,8 @@ def decode_y(y_pred,
              img_height=None,
              img_width=None):
     '''
-    Convert model prediction output back to a format that contains only the positive box predictions
-    (i.e. the same format that `enconde_y()` takes as input).
+    Convert model prediction output back to a tools that contains only the positive box predictions
+    (i.e. the same tools that `enconde_y()` takes as input).
     After the decoding, two stages of prediction filtering are performed for each class individually:
     First confidence thresholding, then greedy non-maximum suppression. The filtering results for all
     classes are concatenated and the `top_k` overall highest confidence results constitute the final
@@ -192,9 +192,9 @@ def decode_y(y_pred,
             to the box score. Defaults to 0.45 following the paper.
         top_k (int, optional): The number of highest scoring predictions to be kept for each batch item after the
             non-maximum suppression stage. Defaults to 200, following the paper.
-        input_coords (str, optional): The box coordinate format that the model outputs. Can be either 'centroids'
-            for the format `(cx, cy, w, h)` (box center coordinates, width, and height) or 'minmax'
-            for the format `(xmin, xmax, ymin, ymax)`. Defaults to 'centroids'.
+        input_coords (str, optional): The box coordinate tools that the model outputs. Can be either 'centroids'
+            for the tools `(cx, cy, w, h)` (box center coordinates, width, and height) or 'minmax'
+            for the tools `(xmin, xmax, ymin, ymax)`. Defaults to 'centroids'.
         normalize_coords (bool, optional): Set to `True` if the model outputs relative coordinates (i.e. coordinates in [0,1])
             and you wish to transform these relative coordinates back to absolute coordinates. If the model outputs
             relative coordinates, but you do not want to convert them back to absolute coordinates, set this to `False`.
@@ -205,7 +205,7 @@ def decode_y(y_pred,
     Returns:
         A python list of length `batch_size` where each list element represents the predicted boxes
         for one image and contains a Numpy array of shape `(boxes, 6)` where each row is a box prediction for
-        a non-background class for the respective image in the format `[class_id, confidence, xmin, xmax, ymin, ymax]`.
+        a non-background class for the respective image in the tools `[class_id, confidence, xmin, xmax, ymin, ymax]`.
     '''
     if normalize_coords and ((img_height is None) or (img_width is None)):
         raise ValueError("If relative box coordinates are supposed to be converted to absolute coordinates, the decoder needs the image size in order to decode the predictions, but `img_height == {}` and `img_width == {}`".format(img_height, img_width))
@@ -269,8 +269,8 @@ def decode_y2(y_pred,
               img_height=None,
               img_width=None):
     '''
-    Convert model prediction output back to a format that contains only the positive box predictions
-    (i.e. the same format that `enconde_y()` takes as input).
+    Convert model prediction output back to a tools that contains only the positive box predictions
+    (i.e. the same tools that `enconde_y()` takes as input).
     Optionally performs confidence thresholding and greedy non-maximum suppression after the decoding stage.
     Note that the decoding procedure used here is not the same as the procedure used in the original Caffe implementation.
     For each box, the procedure used here assigns the box's highest confidence as its predicted class. Then it removes
@@ -295,9 +295,9 @@ def decode_y2(y_pred,
         top_k (int, optional): 'all' or an integer with number of highest scoring predictions to be kept for each batch item
             after the non-maximum suppression stage. Defaults to 'all', in which case all predictions left after the NMS stage
             will be kept.
-        input_coords (str, optional): The box coordinate format that the model outputs. Can be either 'centroids'
-            for the format `(cx, cy, w, h)` (box center coordinates, width, and height) or 'minmax'
-            for the format `(xmin, xmax, ymin, ymax)`. Defaults to 'centroids'.
+        input_coords (str, optional): The box coordinate tools that the model outputs. Can be either 'centroids'
+            for the tools `(cx, cy, w, h)` (box center coordinates, width, and height) or 'minmax'
+            for the tools `(xmin, xmax, ymin, ymax)`. Defaults to 'centroids'.
         normalize_coords (bool, optional): Set to `True` if the model outputs relative coordinates (i.e. coordinates in [0,1])
             and you wish to transform these relative coordinates back to absolute coordinates. If the model outputs
             relative coordinates, but you do not want to convert them back to absolute coordinates, set this to `False`.
@@ -308,7 +308,7 @@ def decode_y2(y_pred,
     Returns:
         A python list of length `batch_size` where each list element represents the predicted boxes
         for one image and contains a Numpy array of shape `(boxes, 6)` where each row is a box prediction for
-        a non-background class for the respective image in the format `[class_id, confidence, xmin, xmax, ymin, ymax]`.
+        a non-background class for the respective image in the tools `[class_id, confidence, xmin, xmax, ymin, ymax]`.
     '''
     if normalize_coords and ((img_height is None) or (img_width is None)):
         raise ValueError("If relative box coordinates are supposed to be converted to absolute coordinates, the decoder needs the image size in order to decode the predictions, but `img_height == {}` and `img_width == {}`".format(img_height, img_width))

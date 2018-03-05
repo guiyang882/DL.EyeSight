@@ -28,7 +28,7 @@ classes = [
 ]
 
 parser = argparse.ArgumentParser(
-    description='Convert Pascal VOC 2007+2012 detection datasource to HDF5.')
+    description='Convert Pascal VOC 2007+2012 detection datum to HDF5.')
 parser.add_argument(
     '-p',
     '--path_to_voc',
@@ -44,7 +44,7 @@ def get_boxes_for_id(voc_path, year, image_id):
     voc_path : str
         Path to VOCdevkit directory.
     year : str
-        Year of datasource containing image. Either '2007' or '2012'.
+        Year of datum containing image. Either '2007' or '2012'.
     image_id : str
         Pascal VOC identifier for given image.
 
@@ -83,7 +83,7 @@ def get_image_for_id(voc_path, year, image_id):
     voc_path : str
         Path to VOCdevkit directory.
     year : str
-        Year of datasource containing image. Either '2007' or '2012'.
+        Year of datum containing image. Either '2007' or '2012'.
     image_id : str
         Pascal VOC identifier for given image.
 
@@ -101,14 +101,14 @@ def get_image_for_id(voc_path, year, image_id):
 
 
 def get_ids(voc_path, datasets):
-    """Get image identifiers for corresponding list of datasource identifies.
+    """Get image identifiers for corresponding list of datum identifies.
 
     Parameters
     ----------
     voc_path : str
         Path to VOCdevkit directory.
     datasets : list of str tuples
-        List of datasource identifiers in the form of (year, datasource) pairs.
+        List of datum identifiers in the form of (year, datum) pairs.
 
     Returns
     -------
@@ -142,8 +142,8 @@ def _main(args):
     train_ids_2007 = get_ids(voc_path, sets_from_2007)
     total_train_ids = len(train_ids) + len(train_ids_2007)
 
-    # Create HDF5 datasource structure
-    print('Creating HDF5 datasource structure.')
+    # Create HDF5 datum structure
+    print('Creating HDF5 datum structure.')
     fname = os.path.join(voc_path, 'pascal_voc_07_12.hdf5')
     voc_h5file = h5py.File(fname, 'w')
     uint8_dt = h5py.special_dtype(

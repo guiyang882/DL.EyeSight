@@ -95,7 +95,7 @@ class SSDLoss:
                 class vector of all zeros.
             y_pred (Keras tensor): The model prediction. The shape is identical
                 to that of `y_true`, i.e. `(batch_size, #boxes, #classes + 12)`.
-                The last axis must contain entries in the format
+                The last axis must contain entries in the tools
                 `[classes one-hot encoded, 4 predicted box coordinate offsets, 8 arbitrary entries]`.
         Returns:
             A scalar, the total multitask loss for classification and localization.

@@ -20,7 +20,7 @@ class argHandler(dict):
         self.define('imgdir', '../sample_img/', 'path to testing directory with images')
         self.define('binary', '../bin/', 'path to .weights directory')
         self.define('config', './cfg/', 'path to .cfg directory')
-        self.define('datasource', '../pascal/VOCdevkit/IMG/', 'path to datasource directory')
+        self.define('datum', '../pascal/VOCdevkit/IMG/', 'path to datum directory')
         self.define('labels', './darkflow/cfg/labels.txt', 'path to labels file')
         self.define('backup', '../ckpt/', 'path to backup folder')
         self.define('summary', '../summary/', 'path to TensorBoard summaries directory')
@@ -40,7 +40,7 @@ class argHandler(dict):
         self.define('batch', 16, 'batch size')
         self.define('epoch', 1000, 'number of epoch')
         self.define('save', 2000, 'save checkpoint every ? training examples')
-        self.define('json', False, 'Outputs bounding box information in json format.')
+        self.define('json', False, 'Outputs bounding box information in json tools.')
         self.define('pbLoad', '', 'path to .pb protobuf file (metaLoad must also be specified)')
         self.define('metaLoad', '', 'path to .meta file generated during --savepb that corresponds to .pb file')
 

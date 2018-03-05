@@ -16,13 +16,13 @@ from threading import Thread
 import cv2
 import numpy as np
 
-from datasource.meta.BaseSet import SetMeta
+from datum.meta.BaseSet import SetMeta
 
 
 class DetectDataSet(SetMeta):
     """Detect DataSet
-    process text input file datasource
-    text file format(each line):
+    process text input file datum
+    text file tools(each line):
         image_file_path,
         xmin1, ymin1, xmax1, ymax1, class1,
         xmin2, ymin2, xmax2, ymax2, class2

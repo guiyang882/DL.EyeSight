@@ -140,7 +140,7 @@ def imresize_many_images(images, sizes=None, interpolation=None):
 
     sizes : iterable of two ints
         The new size in (height, width)
-        format.
+        tools.
 
     interpolation : None or string or int, optional(default=None)
         The interpolation to use during resize.

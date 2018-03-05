@@ -41,7 +41,7 @@ aspect_ratios = [[0.5, 1.0, 2.0],
 two_boxes_for_ar1 = True
 limit_boxes = False # Whether or not you want to limit the anchor boxes to lie entirely within the image boundaries
 variances = [0.1, 0.1, 0.2, 0.2] # The variances by which the encoded target coordinates are scaled as in the original implementation
-coords = 'centroids' # Whether the box coordinates to be used as targets for the model should be in the 'centroids' or 'minmax' format, see documentation
+coords = 'centroids' # Whether the box coordinates to be used as targets for the model should be in the 'centroids' or 'minmax' tools, see documentation
 normalize_coords = True
 
 # 1: Build the Keras model
@@ -140,7 +140,7 @@ val_dataset.parse_xml(images_paths=[VOC_2012_images_path],
                       exclude_difficult=False,
                       ret=False)
 
-# 3: Instantiate an encoder that can encode ground truth labels into the format needed by the SSD loss function.
+# 3: Instantiate an encoder that can encode ground truth labels into the tools needed by the SSD loss function.
 
 # The encoder constructor needs the spatial dimensions of the model's predictor layers to create the anchor boxes.
 predictor_sizes = [model.get_layer('conv4_3_norm_mbox_conf').output_shape[1:3],

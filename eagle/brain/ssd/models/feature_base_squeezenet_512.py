@@ -112,7 +112,7 @@ def base_feature_model(image_size, n_classes,
         # n_boxes_conv8_2 = n_boxes
         # n_boxes_conv9_2 = n_boxes
 
-    # Input image format
+    # Input image tools
     img_height, img_width, img_channels = image_size[0], image_size[1], image_size[2]
 
     ### Design the actual network

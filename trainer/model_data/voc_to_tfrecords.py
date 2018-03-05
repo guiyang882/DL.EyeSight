@@ -29,11 +29,11 @@ classes = [
 ]
 
 parser = argparse.ArgumentParser(
-    description='Convert Pascal VOC 2007+2012 detection datasource to TFRecords.')
+    description='Convert Pascal VOC 2007+2012 detection datum to TFRecords.')
 parser.add_argument(
     '-p',
     '--path_to_voc',
-    help='path to Pascal VOC datasource',
+    help='path to Pascal VOC datum',
     default='~/data/PascalVOC/VOCdevkit')
 
 # Small graph for image decoding
@@ -147,14 +147,14 @@ def get_anno_path(voc_path, year, image_id):
 
 
 def process_dataset(name, image_paths, anno_paths, result_path, num_shards):
-    """Process selected Pascal VOC datasource to generate TFRecords files.
+    """Process selected Pascal VOC datum to generate TFRecords files.
 
     Parameters
     ----------
     name : string
-        Name of resulting datasource 'train' or 'test'.
+        Name of resulting datum 'train' or 'test'.
     image_paths : list
-        List of paths to images to include in datasource.
+        List of paths to images to include in datum.
     anno_paths : list
         List of paths to corresponding image annotations.
     result_path : string

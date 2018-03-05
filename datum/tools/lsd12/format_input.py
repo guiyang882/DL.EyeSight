@@ -24,8 +24,8 @@ reload(sys)
 
 import cv2
 
-from datasource.utils import tools
-from datasource.setformat.lsd12 import label_config as config
+from datum.utils import tools
+from datum.tools.lsd12 import label_config as config
 
 
 nwpu_voc_dir = "/Volumes/projects/repos/RSI/NWPUVHR10/NWPUVOCFORMAT/"
