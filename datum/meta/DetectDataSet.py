@@ -54,6 +54,7 @@ class DetectDataSet(SetMeta):
                 ss = line.split(" ")
                 ss[1:] = [float(num) for num in ss[1:]]
                 self.record_list.append(ss)
+
         self.record_point = 0
         self.record_number = len(self.record_list)
         self.num_batch_per_epoch = int(self.record_number / self.batch_size)
@@ -139,6 +140,7 @@ class DetectDataSet(SetMeta):
             objects_num.append(object_num)
 
         images = np.asarray(images, dtype=np.float32)
+        images = images / 255 * 2 - 1
         labels = np.asarray(labels, dtype=np.float32)
         objects_num = np.asarray(objects_num, dtype=np.int32)
         return images, labels, objects_num

@@ -90,7 +90,7 @@ class BaseYoloNet(object):
             return alpha * x
         """
         x = tf.cast(x, dtype=dtype)
-        bool_mask = x > 0
+        bool_mask = (x > 0)
         mask = tf.cast(bool_mask, dtype=dtype)
         return 1.0 * mask * x + alpha * (1 - mask) * x
 
@@ -110,7 +110,7 @@ class BaseYoloNet(object):
                 shape=[in_dim, out_dim],
                 stddev=0.04,
                 wd=self.weight_decay,
-                pretrain=True,
+                pretrain=pretrain,
                 train=train
             )
             biases = self._variable_on_cpu(

@@ -30,6 +30,9 @@ class YoloSolver(BaseSolver):
         self.train_dir = str(solver_params["train_dir"])
         self.max_iterators = int(solver_params["max_iterators"])
         self.pretrain_path = str(solver_params["pretrain_model_path"])
+
+        if self.train_dir[-1] != '/':
+            self.train_dir += "/"
         # if self.pretrain_path == "None":
         #     self.pretrain_path = None
 
@@ -72,18 +75,19 @@ class YoloSolver(BaseSolver):
         return apply_gradient_op
 
     def solve(self):
-        saver_pretrain = tf.train.Saver(
-            self.net.pretrained_collection, write_version=1)
-        saver_train = tf.train.Saver(
-            self.net.trainable_collection, write_version=1)
+        saver_pretrain = tf.train.Saver(self.net.pretrained_collection)
+        saver_train = tf.train.Saver(self.net.trainable_collection)
 
         init = tf.global_variables_initializer()
         summary_op = tf.summary.merge_all()
 
         sess = tf.Session()
         sess.run(init)
+
         if os.path.isdir(self.pretrain_path):
             saver_pretrain.restore(sess, self.pretrain_path)
+        if not os.path.isdir(self.train_dir):
+            os.makedirs(self.train_dir)
         summary_writer = tf.summary.FileWriter(self.train_dir, sess.graph)
 
         for step in range(self.max_iterators):
@@ -96,14 +100,13 @@ class YoloSolver(BaseSolver):
                     self.images: np_images,
                     self.labels: np_labels,
                     self.objects_num: np_objects_num
-                }
-            )
+                })
 
             duration = time.time() - start_time
 
             assert not np.isnan(loss_val), "Model diverged with loss=NaN"
 
-            if (step + 1) % 10 == 0:
+            if step % 1 == 0:
                 num_examples_per_step = self.dataset.batch_size
                 examples_per_sec = num_examples_per_step / duration
                 sec_per_batch = float(duration)
@@ -114,15 +117,17 @@ class YoloSolver(BaseSolver):
 
                 sys.stdout.flush()
 
-            if (step + 1) % 100 == 0:
-                summary_str = sess.run(summary_op, feed_dict={
-                    self.images: np_images,
-                    self.labels: np_labels,
-                    self.objects_num: np_objects_num
-                })
+            if step % 1 == 0:
+                summary_str = sess.run(
+                    summary_op,
+                    feed_dict={
+                        self.images: np_images,
+                        self.labels: np_labels,
+                        self.objects_num: np_objects_num
+                    })
                 summary_writer.add_summary(summary_str, step)
 
-            if (step + 1) % 2000 == 0:
+            if step % 2000 == 0:
                 if not os.path.isdir(self.train_dir):
                     os.makedirs(self.train_dir)
                 saver_train.save(sess,
