@@ -28,12 +28,12 @@ classes_num = {
     'sheep': 16, 'sofa': 17, 'train': 18, 'tvmonitor': 19
 }
 
-DATA_ROOT = ""
-DATA_PATH = os.path.join(DATA_ROOT, "data/VOCdevkit2007")
-OUTPUT_PATH = os.path.join(DATA_ROOT, "data/pascal_voc.txt")
+DATA_ROOT = "/Volumes/projects/DataSets/VOC"
+DATA_PATH = os.path.join(DATA_ROOT, "VOCdevkit/")
+OUTPUT_PATH = os.path.join(DATA_ROOT, "pascal_voc_{}.txt")
 
 
-def parse_xml(xml_file):
+def parse_xml(xml_file, year=2007):
     """
     Args:
       xml_file: the input xml file path
@@ -49,15 +49,20 @@ def parse_xml(xml_file):
 
     for item in root:
         if item.tag == 'filename':
-            image_path = os.path.join(
-                DATA_PATH, 'VOC2007/JPEGImages', item.text)
+            if year == 2007:
+                image_path = os.path.join(
+                    DATA_PATH, 'VOC2007/JPEGImages', item.text)
+            if year == 2012:
+                image_path = os.path.join(
+                    DATA_PATH, 'VOC2012/JPEGImages', item.text)
         elif item.tag == 'object':
             obj_name = item[0].text
             obj_num = classes_num[obj_name]
-            xmin = int(item[4][0].text)
-            ymin = int(item[4][1].text)
-            xmax = int(item[4][2].text)
-            ymax = int(item[4][3].text)
+            bndbox = item.find("bndbox")
+            xmin = int(float(bndbox.find("xmin").text))
+            ymin = int(float(bndbox.find("ymin").text))
+            xmax = int(float(bndbox.find("xmax").text))
+            ymax = int(float(bndbox.find("ymax").text))
             labels.append([xmin, ymin, xmax, ymax, obj_num])
 
     return image_path, labels
@@ -69,21 +74,30 @@ def convert_to_string(image_path, labels):
     for label in labels:
         for i in label:
             out_string += ' ' + str(i)
-        out_string += '\n'
+    out_string += '\n'
 
     return out_string
 
 
-def main():
-    out_file = open(OUTPUT_PATH, "w")
-    xml_dir = os.path.join(DATA_PATH, "VOC2007/Annotations/")
+def run_main(year=2007):
+    print("Start format voc {} data !".format(year))
+    out_file = open(OUTPUT_PATH.format(year), "w")
+    if year == 2007:
+        xml_dir = os.path.join(DATA_PATH, "VOC2007/Annotations/")
+    if year == 2012:
+        xml_dir = os.path.join(DATA_PATH, "VOC2012/Annotations/")
+
     xml_list = os.listdir(xml_dir)
 
     xml_list = [xml_dir + tmp for tmp in xml_list]
     for xml in xml_list:
         if not os.path.isfile(xml):
             print("{} not xml file path.".format(xml))
-        image_path, labels = parse_xml(xml)
+        image_path, labels = parse_xml(xml, year=year)
         record = convert_to_string(image_path, labels)
         out_file.write(record)
     out_file.close()
+
+if __name__ == '__main__':
+    run_main(year=2007)
+    run_main(year=2012)
