@@ -20,8 +20,8 @@ from eagle.brain.solver.BaseSolver import BaseSolver
 class YoloSolver(BaseSolver):
 
     def __init__(self, dataset, net, common_params, solver_params):
-        self.width = int(common_params["width"])
-        self.height = int(common_params["height"])
+        self.width = int(common_params["image_width"])
+        self.height = int(common_params["image_height"])
         self.batch_size = int(common_params["batch_size"])
         self.max_objects = int(common_params["max_objects_per_image"])
 
@@ -30,6 +30,8 @@ class YoloSolver(BaseSolver):
         self.train_dir = str(solver_params["train_dir"])
         self.max_iterators = int(solver_params["max_iterators"])
         self.pretrain_path = str(solver_params["pretrain_model_path"])
+        # if self.pretrain_path == "None":
+        #     self.pretrain_path = None
 
         self.dataset = dataset
         self.net = net

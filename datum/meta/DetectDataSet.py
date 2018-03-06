@@ -51,7 +51,7 @@ class DetectDataSet(SetMeta):
         with open(self.data_path, "r") as input_file:
             for line in input_file:
                 line = line.strip()
-                ss = line.split(",")
+                ss = line.split(" ")
                 ss[1:] = [float(num) for num in ss[1:]]
                 self.record_list.append(ss)
         self.record_point = 0
