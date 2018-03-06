@@ -17,140 +17,138 @@ from eagle.brain.yolo.BaseYoloNet import BaseYoloNet
 class TinyYoloNet(BaseYoloNet):
     def __init__(self, common_params, net_params, test=False):
         super(TinyYoloNet, self).__init__(common_params, net_params)
+        # process params
+        self.image_size = int(common_params['image_size'])
+        self.num_classes = int(common_params['num_classes'])
+        self.cell_size = int(net_params['cell_size'])
+        self.boxes_per_cell = int(net_params['boxes_per_cell'])
+        self.batch_size = int(common_params['batch_size'])
+        self.weight_decay = float(net_params['weight_decay'])
 
         if not test:
-            self.object_scale = float(net_params["object_scale"])
-            self.noobject_scale = float(net_params["noobject_scale"])
-            self.class_scale = float(net_params["class_scale"])
-            self.coord_scale = float(net_params["coord_scale"])
+            self.object_scale = float(net_params['object_scale'])
+            self.noobject_scale = float(net_params['noobject_scale'])
+            self.class_scale = float(net_params['class_scale'])
+            self.coord_scale = float(net_params['coord_scale'])
 
-    def inference(self, images, params=None):
+    def inference(self, images):
         """Build the yolo model
+        Args:
+          images:  4-D tensor [batch_size, image_height, image_width, channels]
         Returns:
-            predicts: 4-D tensor
-            [batch_size, cell_size, cell_size, num_classes + 5 * boxes_per_cell]
+          predicts: 4-D tensor [batch_size, cell_size, cell_size, num_classes + 5 * boxes_per_cell]
         """
-        conv = self.conv2d(
-            "conv1", images, kernel_size=[3, 3, 3, 16], stride=1)
-        pool = self.max_pool(conv, kernel_size=[2, 2], stride=2)
+        conv_num = 1
+        temp_conv = self.conv2d('conv' + str(conv_num), images, [3, 3, 3, 16], stride=1)
+        temp_pool = self.max_pool(temp_conv, [2, 2], 2)
+        conv_num += 1
 
-        conv = self.conv2d(
-            "conv2", pool, kernel_size=[3, 3, 16, 32], stride=1)
-        pool = self.max_pool(conv, kernel_size=[2, 2], stride=2)
+        temp_conv = self.conv2d('conv' + str(conv_num), temp_pool, [3, 3, 16, 32], stride=1)
+        temp_pool = self.max_pool(temp_conv, [2, 2], 2)
+        conv_num += 1
 
-        conv = self.conv2d(
-            "conv3", pool, kernel_size=[3, 3, 32, 64], stride=1)
-        pool = self.max_pool(conv, kernel_size=[2, 2], stride=2)
+        temp_conv = self.conv2d('conv' + str(conv_num), temp_pool, [3, 3, 32, 64], stride=1)
+        temp_conv = self.max_pool(temp_conv, [2, 2], 2)
+        conv_num += 1
 
-        conv = self.conv2d(
-            "conv4", pool, kernel_size=[3, 3, 64, 128], stride=1)
-        pool = self.max_pool(conv, kernel_size=[2, 2], stride=2)
+        temp_conv = self.conv2d('conv' + str(conv_num), temp_conv, [3, 3, 64, 128], stride=1)
+        temp_conv = self.max_pool(temp_conv, [2, 2], 2)
+        conv_num += 1
 
-        conv = self.conv2d(
-            "conv5", pool, kernel_size=[3, 3, 128, 256], stride=1)
-        pool = self.max_pool(conv, kernel_size=[2, 2], stride=2)
+        temp_conv = self.conv2d('conv' + str(conv_num), temp_conv, [3, 3, 128, 256], stride=1)
+        temp_conv = self.max_pool(temp_conv, [2, 2], 2)
+        conv_num += 1
 
-        conv = self.conv2d(
-            "conv6", pool, kernel_size=[3, 3, 256, 512], stride=1)
-        pool = self.max_pool(conv, kernel_size=[2, 2], stride=2)
+        temp_conv = self.conv2d('conv' + str(conv_num), temp_conv, [3, 3, 256, 512], stride=1)
+        temp_conv = self.max_pool(temp_conv, [2, 2], 2)
+        conv_num += 1
 
-        conv = self.conv2d(
-            "conv7", pool, kernel_size=[3, 3, 512, 1024], stride=1)
-        conv = self.conv2d(
-            "conv8", conv, kernel_size=[3, 3, 1024, 1024], stride=1)
-        conv = self.conv2d(
-            "conv9", conv, kernel_size=[3, 3, 1024, 1024], stride=1)
+        temp_conv = self.conv2d('conv' + str(conv_num), temp_conv, [3, 3, 512, 1024], stride=1)
+        conv_num += 1
 
-        conv = tf.transpose(conv, (0, 3, 1, 2))
+        temp_conv = self.conv2d('conv' + str(conv_num), temp_conv, [3, 3, 1024, 1024], stride=1)
+        conv_num += 1
 
-        # fully connected layer
-        fc = self.fc_layer("fc1", conv, self.cell_size ** 2 * 1024, 256)
-        fc = self.fc_layer("fc2", fc, 256, 4096)
-        fc = self.fc_layer(
-            "fc3",
-            fc,
-            4096,
-            self.cell_size ** 2 * (self.num_classes + self.boxes_per_cell * 5),
-            leaky=False,
-            pretrain=False,
-            train=True
-        )
+        temp_conv = self.conv2d('conv' + str(conv_num), temp_conv, [3, 3, 1024, 1024], stride=1)
+        conv_num += 1
 
-        n1 = self.cell_size ** 2 * self.num_classes
-        n2 = n1 + self.cell_size ** 2 * self.boxes_per_cell
+        temp_conv = tf.transpose(temp_conv, (0, 3, 1, 2))
 
-        class_probs = tf.reshape(
-            fc[:, 0:n1],
-            shape=(-1, self.cell_size, self.cell_size, self.num_classes))
-        scales = tf.reshape(
-            fc[:, n1:n2],
-            shape=(-1, self.cell_size, self.cell_size, self.boxes_per_cell))
-        boxes = tf.reshape(
-            fc[:, n2:],
-            shape=(-1, self.cell_size, self.cell_size, self.boxes_per_cell * 4))
+        # Fully connected layer
+        local1 = self.local('local1', temp_conv,
+                            self.cell_size * self.cell_size * 1024, 256)
 
-        predicts = tf.concat([class_probs, scales, boxes], axis=3)
+        local2 = self.local('local2', local1, 256, 4096)
+
+        local3 = self.local('local3', local2, 4096,
+                            self.cell_size * self.cell_size * (
+                            self.num_classes + self.boxes_per_cell * 5),
+                            leaky=False, pretrain=False, train=True)
+
+        n1 = self.cell_size * self.cell_size * self.num_classes
+
+        n2 = n1 + self.cell_size * self.cell_size * self.boxes_per_cell
+
+        class_probs = tf.reshape(local3[:, 0:n1], (-1, self.cell_size, self.cell_size, self.num_classes))
+        scales = tf.reshape(local3[:, n1:n2], (-1, self.cell_size, self.cell_size, self.boxes_per_cell))
+        boxes = tf.reshape(local3[:, n2:], (-1, self.cell_size, self.cell_size, self.boxes_per_cell * 4))
+
+        local3 = tf.concat([class_probs, scales, boxes], 3)
+
+        predicts = local3
+
         return predicts
 
-    def loss(self, predicts, labels, objects_num):
-        """Add loss to all the trainable variable
-        Parameters:
-            predicts: 4-D tensor
-            [batch_size, cell_size, cell_size, 5 * boxes_per_cell]
-            labels: 3-D tensor [batch_size, max_objects, 5]
-            objects_num: 1-D tensor [batch_size]
+    def iou(self, boxes1, boxes2):
+        """calculate ious
+        Args:
+          boxes1: 4-D tensor [CELL_SIZE, CELL_SIZE, BOXES_PER_CELL, 4]  ====> (x_center, y_center, w, h)
+          boxes2: 1-D tensor [4] ===> (x_center, y_center, w, h)
+        Return:
+          iou: 3-D tensor [CELL_SIZE, CELL_SIZE, BOXES_PER_CELL]
         """
-        class_loss = tf.constant(0.0, tf.float32)
-        object_loss = tf.constant(0.0, tf.float32)
-        noobject_loss = tf.constant(0.0, tf.float32)
-        coord_loss = tf.constant(0.0, tf.float32)
-        loss = [0] * 4
+        boxes1 = tf.stack([boxes1[:, :, :, 0] - boxes1[:, :, :, 2] / 2,
+                           boxes1[:, :, :, 1] - boxes1[:, :, :, 3] / 2,
+                           boxes1[:, :, :, 0] + boxes1[:, :, :, 2] / 2,
+                           boxes1[:, :, :, 1] + boxes1[:, :, :, 3] / 2])
+        boxes1 = tf.transpose(boxes1, [1, 2, 3, 0])
+        boxes2 = tf.stack([boxes2[0] - boxes2[2] / 2, boxes2[1] - boxes2[3] / 2,
+                           boxes2[0] + boxes2[2] / 2,
+                           boxes2[1] + boxes2[3] / 2])
 
-        for i in range(self.batch_size):
-            predict = predicts[i, :, :, :]
-            label = labels[i, :, :]
-            object_num = objects_num[i]
-            nilboy = tf.ones([7, 7, 2])
+        # calculate the left up point
+        lu = tf.maximum(boxes1[:, :, :, 0:2], boxes2[0:2])
+        rd = tf.minimum(boxes1[:, :, :, 2:], boxes2[2:])
 
-            tuple_results = tf.while_loop(
-                cond=self.loss_cond,
-                body=self.loss_body,
-                loop_vars=[
-                    tf.constant(0),
-                    object_num,
-                    [class_loss, object_loss, noobject_loss, coord_loss],
-                    predict,
-                    label,
-                    nilboy
-                ]
-            )
-            for j in range(4):
-                loss[j] += tuple_results[2][j]
-            nilboy = tuple_results[5]
+        # intersection
+        intersection = rd - lu
 
-        tf.add_to_collection(
-            "losses",
-            (loss[0] + loss[1] + loss[2] + loss[3]) / self.batch_size)
+        inter_square = intersection[:, :, :, 0] * intersection[:, :, :, 1]
 
-        tf.summary.scalar("class_loss", loss[0] / self.batch_size)
-        tf.summary.scalar("object_loss", loss[1] / self.batch_size)
-        tf.summary.scalar("noobject_loss", loss[2] / self.batch_size)
-        tf.summary.scalar("coord_loss", loss[3] / self.batch_size)
-        tf.summary.scalar(
-            "weight_loss",
-            tf.add_n(tf.get_collection("losses")) -
-            (loss[0] + loss[1] + loss[2] + loss[3]) / self.batch_size)
+        mask = tf.cast(intersection[:, :, :, 0] > 0, tf.float32) * tf.cast(
+            intersection[:, :, :, 1] > 0, tf.float32)
 
-        return tf.add_n(tf.get_collection("losses"), name="total_loss"), nilboy
+        inter_square = mask * inter_square
 
-    def loss_cond(self, num, object_num, loss, predicts, labels, nilboy):
+        # calculate the boxs1 square and boxs2 square
+        square1 = (boxes1[:, :, :, 2] - boxes1[:, :, :, 0]) * (
+        boxes1[:, :, :, 3] - boxes1[:, :, :, 1])
+        square2 = (boxes2[2] - boxes2[0]) * (boxes2[3] - boxes2[1])
+
+        return inter_square / (square1 + square2 - inter_square + 1e-6)
+
+    def cond1(self, num, object_num, loss, predict, label, nilboy):
+        """
+        if num < object_num
+        """
         return num < object_num
 
-    def loss_body(self, num, object_num, loss, predict, labels, nilboy):
-        """Calculate loss
-        Parameters:
-            predicts: 3-D tensor [cell_size, cell_size, 5 * boxes_per_cell]
-            labels: [max_objects, 5] (x_center, y_center, w, h, class)
+    def body1(self, num, object_num, loss, predict, labels, nilboy):
+        """
+        calculate loss
+        Args:
+          predict: 3-D tensor [cell_size, cell_size, 5 * boxes_per_cell]
+          labels : [max_objects, 5]  (x_center, y_center, w, h, class)
         """
         label = labels[num:num + 1, :]
         label = tf.reshape(label, [-1])
@@ -171,10 +169,9 @@ class TinyYoloNet(BaseYoloNet):
         temp = tf.cast(tf.stack([max_y - min_y, max_x - min_x]), dtype=tf.int32)
         objects = tf.ones(temp, tf.float32)
 
-        temp = tf.cast(
-            tf.stack(
-                [min_y, self.cell_size - max_y, min_x, self.cell_size - max_x]),
-            tf.int32)
+        temp = tf.cast(tf.stack(
+            [min_y, self.cell_size - max_y, min_x, self.cell_size - max_x]),
+                       tf.int32)
         temp = tf.reshape(temp, (2, 2))
         objects = tf.pad(objects, temp, "CONSTANT")
 
@@ -188,11 +185,9 @@ class TinyYoloNet(BaseYoloNet):
 
         response = tf.ones([1, 1], tf.float32)
 
-        temp = tf.cast(
-            tf.stack(
-                [center_y, self.cell_size - center_y - 1,
-                 center_x, self.cell_size - center_x - 1]),
-            tf.int32)
+        temp = tf.cast(tf.stack(
+            [center_y, self.cell_size - center_y - 1, center_x,
+             self.cell_size - center_x - 1]), tf.int32)
         temp = tf.reshape(temp, (2, 2))
         response = tf.pad(response, temp, "CONSTANT")
         # objects = response
@@ -200,14 +195,13 @@ class TinyYoloNet(BaseYoloNet):
         # calculate iou_predict_truth [CELL_SIZE, CELL_SIZE, BOXES_PER_CELL]
         predict_boxes = predict[:, :, self.num_classes + self.boxes_per_cell:]
 
-        predict_boxes = tf.reshape(
-            predict_boxes,
-            [self.cell_size, self.cell_size, self.boxes_per_cell, 4])
+        predict_boxes = tf.reshape(predict_boxes,
+                                   [self.cell_size, self.cell_size,
+                                    self.boxes_per_cell, 4])
 
         predict_boxes = predict_boxes * [self.image_size / self.cell_size,
                                          self.image_size / self.cell_size,
-                                         self.image_size,
-                                         self.image_size]
+                                         self.image_size, self.image_size]
 
         base_boxes = np.zeros([self.cell_size, self.cell_size, 4])
 
@@ -219,33 +213,30 @@ class TinyYoloNet(BaseYoloNet):
                                        0,
                                        0]
         base_boxes = np.tile(
-            np.resize(
-                base_boxes,
-                [self.cell_size, self.cell_size, 1, 4]),
+            np.resize(base_boxes, [self.cell_size, self.cell_size, 1, 4]),
             [1, 1, self.boxes_per_cell, 1])
 
         predict_boxes = base_boxes + predict_boxes
 
         iou_predict_truth = self.iou(predict_boxes, label[0:4])
         # calculate C [cell_size, cell_size, boxes_per_cell]
-        C = iou_predict_truth * tf.reshape(
-            response,
-            [self.cell_size, self.cell_size, 1])
+        C = iou_predict_truth * tf.reshape(response,
+                                           [self.cell_size, self.cell_size, 1])
 
         # calculate I tensor [CELL_SIZE, CELL_SIZE, BOXES_PER_CELL]
-        I = iou_predict_truth * tf.reshape(
-            response,
-            (self.cell_size, self.cell_size, 1))
+        I = iou_predict_truth * tf.reshape(response,
+                                           (self.cell_size, self.cell_size, 1))
 
         max_I = tf.reduce_max(I, 2, keep_dims=True)
 
-        I = tf.cast((I >= max_I), tf.float32) * tf.reshape(
-            response, (self.cell_size, self.cell_size, 1))
+        I = tf.cast((I >= max_I), tf.float32) * tf.reshape(response, (
+        self.cell_size, self.cell_size, 1))
 
         # calculate no_I tensor [CELL_SIZE, CELL_SIZE, BOXES_PER_CELL]
         no_I = tf.ones_like(I, dtype=tf.float32) - I
 
-        p_C = predict[:, :, self.num_classes:self.num_classes + self.boxes_per_cell]
+        p_C = predict[:, :,
+              self.num_classes:self.num_classes + self.boxes_per_cell]
 
         # calculate truth x,y,sqrt_w,sqrt_h 0-D
         x = label[0]
@@ -253,18 +244,21 @@ class TinyYoloNet(BaseYoloNet):
 
         sqrt_w = tf.sqrt(tf.abs(label[2]))
         sqrt_h = tf.sqrt(tf.abs(label[3]))
+        # sqrt_w = tf.abs(label[2])
+        # sqrt_h = tf.abs(label[3])
 
         # calculate predict p_x, p_y, p_sqrt_w, p_sqrt_h 3-D [CELL_SIZE, CELL_SIZE, BOXES_PER_CELL]
         p_x = predict_boxes[:, :, :, 0]
         p_y = predict_boxes[:, :, :, 1]
 
         p_sqrt_w = tf.sqrt(
-            tf.minimum(self.image_size * 1.0,
-                       tf.maximum(0.0, predict_boxes[:, :, :, 2])))
+            tf.minimum(
+                self.image_size * 1.0,
+                tf.maximum(0.0, predict_boxes[:, :, :, 2])))
         p_sqrt_h = tf.sqrt(
-            tf.minimum(self.image_size * 1.0,
-                       tf.maximum(0.0, predict_boxes[:, :, :, 3])))
-
+            tf.minimum(
+                self.image_size * 1.0,
+                tf.maximum(0.0, predict_boxes[:, :, :, 3])))
         # calculate truth p 1-D tensor [NUM_CLASSES]
         P = tf.one_hot(tf.cast(label[4], tf.int32),
                        self.num_classes,
@@ -276,10 +270,8 @@ class TinyYoloNet(BaseYoloNet):
         # class_loss
         class_loss = tf.nn.l2_loss(
             tf.reshape(
-                objects,
-                (self.cell_size, self.cell_size, 1)
-            ) * (p_P - P)
-        ) * self.class_scale
+                objects, (self.cell_size, self.cell_size, 1))
+            * (p_P - P)) * self.class_scale
 
         # object_loss
         object_loss = tf.nn.l2_loss(I * (p_C - C)) * self.object_scale
@@ -288,11 +280,11 @@ class TinyYoloNet(BaseYoloNet):
         noobject_loss = tf.nn.l2_loss(no_I * (p_C)) * self.noobject_scale
 
         # coord_loss
-        coord_loss = (
+        coord_loss = self.coord_scale * (
             tf.nn.l2_loss(I * (p_x - x) / (self.image_size / self.cell_size)) +
             tf.nn.l2_loss(I * (p_y - y) / (self.image_size / self.cell_size)) +
             tf.nn.l2_loss(I * (p_sqrt_w - sqrt_w)) / self.image_size +
-            tf.nn.l2_loss(I * (p_sqrt_h - sqrt_h)) / self.image_size) * self.coord_scale
+            tf.nn.l2_loss(I * (p_sqrt_h - sqrt_h)) / self.image_size)
 
         nilboy = I
 
@@ -300,3 +292,51 @@ class TinyYoloNet(BaseYoloNet):
                                      loss[1] + object_loss,
                                      loss[2] + noobject_loss,
                                      loss[3] + coord_loss], predict, labels, nilboy
+
+    def loss(self, predicts, labels, objects_num):
+        """Add Loss to all the trainable variables
+
+        Args:
+          predicts: 4-D tensor [batch_size, cell_size, cell_size, 5 * boxes_per_cell]
+          ===> (num_classes, boxes_per_cell, 4 * boxes_per_cell)
+          labels  : 3-D tensor of [batch_size, max_objects, 5]
+          objects_num: 1-D tensor [batch_size]
+        """
+        class_loss = tf.constant(0, tf.float32)
+        object_loss = tf.constant(0, tf.float32)
+        noobject_loss = tf.constant(0, tf.float32)
+        coord_loss = tf.constant(0, tf.float32)
+        loss = [0, 0, 0, 0]
+
+        for i in range(self.batch_size):
+            predict = predicts[i, :, :, :]
+            label = labels[i, :, :]
+            object_num = objects_num[i]
+            nilboy = tf.ones([7, 7, 2])
+            tuple_results = tf.while_loop(
+                self.cond1,
+                self.body1,
+                [
+                    tf.constant(0),
+                    object_num,
+                    [class_loss, object_loss, noobject_loss, coord_loss],
+                    predict,
+                    label,
+                    nilboy
+                ])
+
+            for j in range(4):
+                loss[j] = loss[j] + tuple_results[2][j]
+            nilboy = tuple_results[5]
+
+        tf.add_to_collection('losses', (loss[0] + loss[1] + loss[2] + loss[3]) / self.batch_size)
+
+        tf.summary.scalar('class_loss', loss[0] / self.batch_size)
+        tf.summary.scalar('object_loss', loss[1] / self.batch_size)
+        tf.summary.scalar('noobject_loss', loss[2] / self.batch_size)
+        tf.summary.scalar('coord_loss', loss[3] / self.batch_size)
+        tf.summary.scalar('weight_loss',
+                          tf.add_n(tf.get_collection('losses')) -
+                          (loss[0] + loss[1] + loss[2] + loss[3]) / self.batch_size)
+
+        return tf.add_n(tf.get_collection('losses'), name='total_loss'), nilboy
