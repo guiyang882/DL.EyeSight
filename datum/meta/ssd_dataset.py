@@ -42,6 +42,9 @@ class SSDDataSet(DataSet):
         self.box_output_format = json.loads(dataset_params["box_output_format"])
         self.is_need_bg = True if dataset_params["is_need_bg"] == "True" else False
 
+        self.upper_resize_rate = float(dataset_params["upper_resize_rate"])
+        self.lower_resize_rate = float(dataset_params["lower_resize_rate"])
+
         # record and image_label queue
         self.record_queue = Queue(maxsize=10000)
         self.image_label_queue = Queue(maxsize=2000)
@@ -91,67 +94,134 @@ class SSDDataSet(DataSet):
         while True:
             item = self.record_queue.get()
             out = self.record_process(item)
-            self.image_label_queue.put(out)
+            if out is not None:
+                self.image_label_queue.put(out)
 
     def record_process(self, record):
         """对于每个样本的数据具体该如何处理
         Args: record --> [image_path, xmin, ymin, xmax, ymax, class_id]
         Returns:
           image: 3-D ndarray
-          labels: 2-D list [self.max_objects, 5]
-                ---> (xcenter, ycenter, w, h, objects_num)
-          object_num:  total object number  int
+          labels: 2-D list [[xmin, ymin, xmax, ymax, class_id]]
         """
         image = cv2.imread(record[0])
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         h = image.shape[0]
         w = image.shape[1]
 
-        width_rate = self.width * 1.0 / w
-        height_rate = self.height * 1.0 / h
+        real_rate = w / h
+        target_rate = self.width / self.height
 
-        image = cv2.resize(image, (self.height, self.width))
+        if (target_rate - self.lower_resize_rate
+                <= real_rate <= target_rate + self.upper_resize_rate):
+            width_rate = self.width * 1.0 / w
+            height_rate = self.height * 1.0 / h
 
-        labels = [[0, 0, 0, 0, 0]] * self.max_objects
-        i = 1
-        object_num = 0
-        while i < len(record):
-            xmin = record[i]
-            ymin = record[i + 1]
-            xmax = record[i + 2]
-            ymax = record[i + 3]
-            class_num = record[i + 4]
+            image = cv2.resize(image, (self.height, self.width))
+            labels = []
+            i = 1
+            while i < len(record):
+                xmin = record[i]
+                ymin = record[i + 1]
+                xmax = record[i + 2]
+                ymax = record[i + 3]
+                class_id = record[i + 4]
+                labels.append([xmin * width_rate, ymin * height_rate,
+                               xmax * width_rate, ymax * height_rate,
+                               class_id])
+                i += 5
+            return [image, labels]
+        elif real_rate > target_rate + self.upper_resize_rate:
+            # 当前的图像不满足直接resize的比例，需要按照最短边进行一定比例进行裁减
+            h0 = h
+            w0 = np.ceil(h0 * (target_rate + self.upper_resize_rate))
+            # we should crop from (0, 0)
+            image = image[:, 0:w0]
+            image = cv2.resize(image, (self.height, self.width))
+            width_rate = self.width * 1.0 / w0
+            height_rate = self.height * 1.0 / h0
 
-            xcenter = (xmin + xmax) * 1.0 / 2 * width_rate
-            ycenter = (ymin + ymax) * 1.0 / 2 * height_rate
+            # 处理原始目标区域在裁减之后的图像中的实际位置
+            labels = []
+            i = 1
+            while i < len(record):
+                xmin = record[i]
+                ymin = record[i + 1]
+                xmax = record[i + 2]
+                ymax = record[i + 3]
+                class_id = record[i + 4]
+                if xmin < w0 - 1 and xmax <= w0 - 1:
+                    labels.append([xmin * width_rate, ymin * height_rate,
+                                   xmax * width_rate, ymax * height_rate,
+                                   class_id])
+                elif xmin < w0 - 1 and xmax > w0 - 1:
+                    if (w0 - 1 - xmin) / (xmax - xmin) >= 0.6:
+                        labels.append([xmin * width_rate, ymin * height_rate,
+                                       w0-1, ymax * height_rate,
+                                       class_id])
+                    else:
+                        pass
+                else:
+                    pass
+                i += 5
+            # 若没有目标符合变换要求，就将这个数据丢弃
+            if len(labels) != 0:
+                return [image, labels]
+            else:
+                return None
+        elif real_rate < target_rate - self.lower_resize_rate:
+            w0 = w
+            h0 = np.ceil(w0 / (target_rate - self.lower_resize_rate))
+            # we should crop from (0, 0)
+            image = image[0:h0, :]
+            image = cv2.resize(image, (self.height, self.width))
+            width_rate = self.width * 1.0 / w0
+            height_rate = self.height * 1.0 / h0
 
-            box_w = (xmax - xmin) * width_rate
-            box_h = (ymax - ymin) * height_rate
-
-            labels[object_num] = [xcenter, ycenter, box_w, box_h, class_num]
-            object_num += 1
-            i += 5
-            if object_num >= self.max_objects:
-                break
-        return [image, labels, object_num]
+            # 处理原始目标区域在裁减之后的图像中的实际位置
+            labels = []
+            i = 1
+            while i < len(record):
+                xmin = record[i]
+                ymin = record[i + 1]
+                xmax = record[i + 2]
+                ymax = record[i + 3]
+                class_id = record[i + 4]
+                if ymin < h0 - 1 and ymax <= h0 - 1:
+                    labels.append([xmin * width_rate, ymin * height_rate,
+                                   xmax * width_rate, ymax * height_rate,
+                                   class_id])
+                elif ymin < h0 - 1 and ymax > h0 - 1:
+                    if (h0 - 1 - ymin) / (ymax - ymin) >= 0.6:
+                        labels.append([xmin * width_rate, ymin * height_rate,
+                                       xmax * width_rate, h0 - 1,
+                                       class_id])
+                    else:
+                        pass
+                else:
+                    pass
+                i += 5
+            # 若没有目标符合变换要求，就将这个数据丢弃
+            if len(labels) != 0:
+                return [image, labels]
+            else:
+                return None
+        else:
+            pass
 
     def batch(self):
         """get batch
         Returns:
           images: 4-D ndarray [batch_size, height, width, 3]
           labels: 3-D ndarray [batch_size, max_objects, 5]
-          objects_num: 1-D ndarray [batch_size]
         """
         images = []
         labels = []
-        objects_num = []
         for i in range(self.batch_size):
-            image, label, object_num = self.image_label_queue.get()
+            image, label = self.image_label_queue.get()
             images.append(image)
             labels.append(label)
-            objects_num.append(object_num)
         images = np.asarray(images, dtype=np.float32)
         images = images / 255 * 2 - 1
         labels = np.asarray(labels, dtype=np.float32)
-        objects_num = np.asarray(objects_num, dtype=np.int32)
-        return images, labels, objects_num
+        return images, labels

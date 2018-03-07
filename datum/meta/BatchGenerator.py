@@ -404,11 +404,6 @@ class BatchGenerator:
 
             current += batch_size
 
-            # At this point we're done producing the batch. Now perform some
-            # optional image transformations:
-
-            batch_items_to_remove = [] # In case we need to remove any images from the batch because of failed random cropping, store their indices in this list
-
             for i in range(len(batch_X)):
 
                 img_height, img_width, ch = batch_X[i].shape
@@ -449,18 +444,10 @@ class BatchGenerator:
                             random_crop = (crop_height, crop_width, full_crop_and_resize[2], full_crop_and_resize[3])
                             resize = (full_crop_and_resize[0], full_crop_and_resize[1])
 
-            # If any batch items need to be removed because of failed random cropping, remove them now.
-            for j in sorted(batch_items_to_remove, reverse=True):
-                batch_X.pop(j)
-                batch_y.pop(j) # This isn't efficient, but this should hopefully not need to be done often anyway.
-
             if train: # During training we need the encoded labels instead of the tools that `batch_y` has
                 if ssd_box_encoder is None:
                     raise ValueError("`ssd_box_encoder` cannot be `None` in training mode.")
-                if diagnostics:
-                    y_true, matched_anchors = ssd_box_encoder.encode_y(batch_y, diagnostics)
-                else:
-                    y_true = ssd_box_encoder.encode_y(batch_y, diagnostics) # Encode the labels into the `y_true` tensor that the cost function needs
+                y_true = ssd_box_encoder.encode_y(batch_y, diagnostics) # Encode the labels into the `y_true` tensor that the cost function needs
 
             # CAUTION: Converting `batch_X` into an array will result in an empty batch if the images have varying sizes.
             #          At this point, all images have to have the same size, otherwise you will get an error during training.
