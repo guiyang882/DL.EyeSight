@@ -18,29 +18,8 @@ from keras.layers import Input, Activation, Conv2D, Lambda, Reshape, Concatenate
 from keras.layers import MaxPooling2D, BatchNormalization
 
 from eagle.brain.ssd.Layer_AnchorBoxes import AnchorBoxes
+from eagle.brain.ssd.models.components import _fire, _fire_with_bn, _conv2D_with_bn
 
-
-def _fire(x, filters, name="fire"):
-    sq_filters, ex1_filters, ex2_filters = filters
-    squeeze = Conv2D(sq_filters, (1, 1), activation="relu", padding="same", kernel_initializer="he_normal", name=name+"/squeeze1x1")(x)
-    expand1 = Conv2D(ex1_filters, (1, 1), activation="relu", padding="same", kernel_initializer="he_normal", name=name+"/expand1x1")(squeeze)
-    expand2 = Conv2D(ex2_filters, (3, 3), activation="relu", padding="same", kernel_initializer="he_normal", name=name+"/expand3x3")(squeeze)
-    x = Concatenate(axis=-1, name=name+"/concate")([expand1, expand2])
-    return x
-
-def _fire_with_bn(x, filters, name="fire"):
-    sq_filters, ex1_filters, ex2_filters = filters
-    squeeze = Conv2D(sq_filters, (1, 1), activation="relu", padding="same", kernel_initializer="he_normal", name=name+"/squeeze1x1")(x)
-    expand1 = Activation(activation="relu", name=name+"/relu_expand1x1")(BatchNormalization(name=name+"/expand1x1/bn")(Conv2D(ex1_filters, (1, 1), strides=(1, 1), padding="same", kernel_initializer="he_normal", name=name+"/expand1x1")(squeeze)))
-    expand2 = Activation(activation="relu", name=name+"/relu_expand3x3")(BatchNormalization(name=name+"/expand3x3/bn")(Conv2D(ex2_filters, (3, 3), strides=(1, 1), padding="same", kernel_initializer="he_normal", name=name+"/expand3x3")(squeeze)))
-    x = Concatenate(axis=-1, name=name+"/concate")([expand1, expand2])
-    return x
-
-def _conv2D_with_bn(x, n_filters, k_size, k_stride, name, pad="same"):
-    x = Conv2D(n_filters, k_size, strides=(k_stride, k_stride), padding=pad, kernel_initializer="he_normal", name=name+"/conv")(x)
-    x = BatchNormalization(name=name+"/bn")(x)
-    x = Activation(activation="relu", name=name+"/relu")(x)
-    return x
 
 def base_feature_model(image_size, n_classes,
                        min_scale=0.1, max_scale=0.9, scales=None,
@@ -49,6 +28,79 @@ def base_feature_model(image_size, n_classes,
                        variances=[0.1, 0.1, 0.2, 0.2],
                        coords='centroids',
                        normalize_coords=False):
+    """
+    Build a Keras model with SSD_300 architecture, see references.
+    The base network is a reduced atrous VGG-16, extended by the SSD architecture,
+    as described in the paper.
+    In case you're wondering why this function has so many arguments: All arguments except
+    the first two (`image_size` and `n_classes`) are only needed so that the anchor box
+    layers can produce the correct anchor boxes. In case you're training the network, the
+    parameters passed here must be the same as the ones used to set up `SSDBoxEncoder`.
+    In case you're loading trained weights, the parameters passed here must be the same
+    as the ones used to produce the trained weights.
+    Some of these arguments are explained in more detail in the documentation of the
+    `SSDBoxEncoder` class.
+    Note: Requires Keras v2.0 or later. Currently works only with the
+    TensorFlow backend (v1.0 or later).
+    Arguments:
+        image_size (tuple): The input image size in the tools `(height, width, channels)`.
+        n_classes (int): The number of categories for classification including
+            the background class (i.e. the number of positive classes +1 for
+            the background calss).
+        min_scale (float, optional): The smallest scaling factor for the size of the anchor boxes as a fraction
+            of the shorter side of the input images. Defaults to 0.1.
+        max_scale (float, optional): The largest scaling factor for the size of the anchor boxes as a fraction
+            of the shorter side of the input images. All scaling factors between the smallest and the
+            largest will be linearly interpolated. Note that the second to last of the linearly interpolated
+            scaling factors will actually be the scaling factor for the last predictor layer, while the last
+            scaling factor is used for the second box for aspect ratio 1 in the last predictor layer
+            if `two_boxes_for_ar1` is `True`. Defaults to 0.9.
+        scales (list, optional): A list of floats containing scaling factors per convolutional predictor layer.
+            This list must be one element longer than the number of predictor layers. The first `k` elements are the
+            scaling factors for the `k` predictor layers, while the last element is used for the second box
+            for aspect ratio 1 in the last predictor layer if `two_boxes_for_ar1` is `True`. This additional
+            last scaling factor must be passed either way, even if it is not being used.
+            Defaults to `None`. If a list is passed, this argument overrides `min_scale` and
+            `max_scale`. All scaling factors must be greater than zero.
+        aspect_ratios_global (list, optional): The list of aspect ratios for which anchor boxes are to be
+            generated. This list is valid for all prediction layers. Defaults to None.
+        aspect_ratios_per_layer (list, optional): A list containing one aspect ratio list for each prediction layer.
+            This allows you to set the aspect ratios for each predictor layer individually, which is the case for the
+            original SSD implementation. If a list is passed, it overrides `aspect_ratios_global`.
+            Defaults to the aspect ratios used in the original SSD300 architecture, i.e.:
+                [[0.5, 1.0, 2.0],
+                 [1.0/3.0, 0.5, 1.0, 2.0, 3.0],
+                 [1.0/3.0, 0.5, 1.0, 2.0, 3.0],
+                 [1.0/3.0, 0.5, 1.0, 2.0, 3.0],
+                 [0.5, 1.0, 2.0],
+                 [0.5, 1.0, 2.0]]
+        two_boxes_for_ar1 (bool, optional): Only relevant for aspect ratio lists that contain 1. Will be ignored otherwise.
+            If `True`, two anchor boxes will be generated for aspect ratio 1. The first will be generated
+            using the scaling factor for the respective layer, the second one will be generated using
+            geometric mean of said scaling factor and next bigger scaling factor. Defaults to `True`, following the original
+            implementation.
+        limit_boxes (bool, optional): If `True`, limits box coordinates to stay within image boundaries.
+            This would normally be set to `True`, but here it defaults to `False`, following the original
+            implementation.
+        variances (list, optional): A list of 4 floats >0 with scaling factors (actually it's not factors but divisors
+            to be precise) for the encoded predicted box coordinates. A variance value of 1.0 would apply
+            no scaling at all to the predictions, while values in (0,1) upscale the encoded predictions and values greater
+            than 1.0 downscale the encoded predictions. Defaults to `[0.1, 0.1, 0.2, 0.2]`, following the original implementation.
+            The coordinate tools must be 'centroids'.
+        coords (str, optional): The box coordinate tools to be used. Can be either 'centroids' for the tools
+            `(cx, cy, w, h)` (box center coordinates, width, and height) or 'minmax' for the tools
+            `(xmin, xmax, ymin, ymax)`. Defaults to 'centroids', following the original implementation.
+        normalize_coords (bool, optional): Set to `True` if the model is supposed to use relative instead of absolute coordinates,
+            i.e. if the model predicts box coordinates within [0,1] instead of absolute coordinates. Defaults to `False`.
+    Returns:
+        model: The Keras SSD model.
+        predictor_sizes: A Numpy array containing the `(height, width)` portion
+            of the output tensor shape for each convolutional predictor layer. During
+            training, the generator function needs this in order to transform
+            the ground truth labels into tensors of identical structure as the
+            output tensors of the model, which is in turn needed for the cost
+            function.
+    """
     n_predictor_layers = 6  # The number of predictor conv layers in the network is 6 for the original SSD300
     # Get a few exceptions out of the way first
     if aspect_ratios_global is None and aspect_ratios_per_layer is None:
@@ -122,74 +174,37 @@ def base_feature_model(image_size, n_classes,
         output_shape=(img_height, img_width, img_channels),
         name='lambda1')(x)
 
-#-------------#-------------#-------------#-------------#-------------#-------------#-------------#-------------#-------------#-------------#-------------#-------------#-------------#-------------#-------------#
-
-    conv1 = Conv2D(32, kernel_size=(3, 3), strides=(2, 2), padding="same", activation="relu", kernel_initializer="he_normal", name="conv1")(normed)
+    conv1 = Conv2D(64, kernel_size=(3, 3), strides=(2, 2), padding="same", activation="relu", kernel_initializer="he_normal", name="conv1")(normed)
     pool1 = MaxPooling2D(pool_size=(3, 3), strides=(2, 2), name="pool1", padding="same")(conv1)
 
-    dilated_conv11 = Conv2D(32, kernel_size=(3, 3), strides=(1, 1), dilation_rate=(2, 2), padding="same", activation="relu", kernel_initializer="he_normal", name="dilated_conv11")(conv1)
-    dilated_pool11 = MaxPooling2D(pool_size=(3, 3), strides=(2, 2), name="dilated_pool11", padding="same")(dilated_conv11)
+    fire2 = _fire(pool1, (16, 64, 64), name="fire2")
+    fire3 = _fire(fire2, (16, 64, 64), name="fire3")
+    pool3 = MaxPooling2D(pool_size=(3, 3), strides=(2, 2), name="pool3", padding="same")(fire3)
 
-    dilated_conv12 = Conv2D(64, kernel_size=(3, 3), strides=(1, 1), dilation_rate=(4, 4), padding="same", activation="relu", kernel_initializer="he_normal", name="dilated_conv12")(conv1)
-    dilated_pool12 = MaxPooling2D(pool_size=(3, 3), strides=(4, 4), name="dilated_pool12", padding="same")(dilated_conv12)
+    fire4 = _fire(pool3, (32, 128, 128), name="fire4")
+    fire5 = _fire(fire4, (32, 128, 128), name="fire5")
+    pool5 = MaxPooling2D(pool_size=(3, 3), strides=(2, 2), name='pool5', padding="same")(fire5)
 
-    dilated_conv13 = Conv2D(64, kernel_size=(3, 3), strides=(1, 1), dilation_rate=(8, 8), padding="same", activation="relu", kernel_initializer="he_normal", name="dilated_conv13")(conv1)
-    dilated_pool13 = MaxPooling2D(pool_size=(3, 3), strides=(8, 8), name="dilated_pool13", padding="same")(dilated_conv13)
-
-#-------------#-------------#-------------#-------------#-------------#-------------#-------------#-------------#-------------#-------------#-------------#-------------#-------------#-------------#-------------#
-    
-    fire2 = _fire(pool1, (16, 32, 32), name="fire2")
-    fire3 = _fire(fire2, (16, 32, 32), name="fire3")
-    concat_d11_f3 = Concatenate(name='concat_d11_f3')([dilated_pool11, fire3])
-    pool3 = MaxPooling2D(pool_size=(3, 3), strides=(2, 2), name="pool3", padding="same")(concat_d11_f3)
-
-    dilated_conv21 = Conv2D(64, kernel_size=(3, 3), strides=(1, 1), dilation_rate=(2, 2), padding="same", activation="relu", kernel_initializer="he_normal", name="dilated_conv21")(concat_d11_f3)
-    dilated_pool21 = MaxPooling2D(pool_size=(3, 3), strides=(2, 2), name="dilated_pool21", padding="same")(dilated_conv21)
-
-    dilated_conv22 = Conv2D(96, kernel_size=(3, 3), strides=(1, 1), dilation_rate=(4, 4), padding="same", activation="relu", kernel_initializer="he_normal", name="dilated_conv22")(concat_d11_f3)
-    dilated_pool22 = MaxPooling2D(pool_size=(3, 3), strides=(4, 4), name="dilated_pool22", padding="same")(dilated_conv22)
-
-#-------------#-------------#-------------#-------------#-------------#-------------#-------------#-------------#-------------#-------------#-------------#-------------#-------------#-------------#-------------#
-
-    fire4 = _fire(pool3, (32, 64, 64), name="fire4")
-    fire5 = _fire(fire4, (32, 64, 64), name="fire5")
-    concat_d12_f5 = Concatenate(name='concat_d12_f5')([dilated_pool12, fire5])
-    concat_d21_d12_f5 = Concatenate(name='concat_d21_d12_f5')([dilated_pool21, concat_d12_f5])
-    pool5 = MaxPooling2D(pool_size=(3, 3), strides=(2, 2), name='pool5', padding="same")(concat_d21_d12_f5)
-
-    fire5_conv_bn = Conv2D(256, (3, 3), strides=(1, 1), kernel_initializer="he_normal", name="fire5_conv_bn")(concat_d21_d12_f5)
+    fire5_conv_bn = Conv2D(256, (3, 3), strides=(1, 1), kernel_initializer="he_normal", name="fire5_conv_bn")(fire5)
     fire5_bn = BatchNormalization(name="fire5_bn")(fire5_conv_bn)
 
-    dilated_conv31 = Conv2D(96, kernel_size=(3, 3), strides=(1, 1), dilation_rate=(2, 2), padding="same", activation="relu", kernel_initializer="he_normal", name="dilated_conv31")(concat_d21_d12_f5)
-    dilated_pool31 = MaxPooling2D(pool_size=(3, 3), strides=(2, 2), name="dilated_pool31", padding="same")(dilated_conv31)
+    fire6 = _fire(pool5, (48, 192, 192), name="fire6")
+    fire7 = _fire(fire6, (48, 192, 192), name="fire7")
 
-#-------------#-------------#-------------#-------------#-------------#-------------#-------------#-------------#-------------#-------------#-------------#-------------#-------------#-------------#-------------#
-
-    fire6 = _fire(pool5, (48, 96, 96), name="fire6")
-    fire7 = _fire(fire6, (48, 96, 96), name="fire7")
-    concat_d13_f7 = Concatenate(name='concat_d13_f7')([dilated_pool13, fire7])
-    concat_d22_d13_f7 = Concatenate(name='concat_d22_d13_f7')([dilated_pool22, concat_d13_f7])
-    concat_d31_d22_d13_f7 = Concatenate(name='concat_d31_d22_d13_f7')([dilated_pool31, concat_d22_d13_f7])
-
-    fire8 = _fire(concat_d31_d22_d13_f7, (96, 256, 256), name="fire8")
-    fire9 = _fire_with_bn(fire8, (96, 256, 256), name="fire9")
+    fire8 = _fire(fire7, (64, 256, 256), name="fire8")
+    fire9 = _fire_with_bn(fire8, (64, 256, 256), name="fire9")
     pool9 = MaxPooling2D(pool_size=(3, 3), strides=(2, 2), name='pool9', padding="same")(fire9)
 
-#-------------#-------------#-------------#-------------#-------------#-------------#-------------#-------------#-------------#-------------#-------------#-------------#-------------#-------------#-------------#
-
-    fire10 = _fire_with_bn(pool9, (96, 256, 256), name="fire10")
+    fire10 = _fire_with_bn(pool9, (96, 384, 384), name="fire10")
     pool10 = MaxPooling2D(pool_size=(3, 3), strides=(2, 2), name='pool10', padding="same")(fire10)
 
-#-------------#-------------#-------------#-------------#-------------#-------------#-------------#-------------#-------------#-------------#-------------#-------------#-------------#-------------#-------------#
-
-    fire11 = _fire_with_bn(pool10, (96, 256, 256), name="fire11")
+    fire11 = _fire_with_bn(pool10, (96, 384, 384), name="fire11")
     conv12_1 = _conv2D_with_bn(fire11, 128, (1, 1), 1, name="conv12_1")
     conv12_2 = _conv2D_with_bn(conv12_1, 256, (3, 3), 2, name="conv12_2")
     conv13_1 = _conv2D_with_bn(conv12_2, 64, (1, 1), 1, name="conv13_1")
     conv13_2 = _conv2D_with_bn(conv13_1, 128, (3, 3), 2, pad="valid", name="conv13_2")
-
-#-------------#-------------#-------------#-------------#-------------#-------------#-------------#-------------#-------------#-------------#-------------#-------------#-------------#-------------#-------------#
-
+    
+    
     ### Build the convolutional predictor layers on top of the base network
     # We precidt `n_classes` confidence values for each box, hence the confidence predictors have depth `n_boxes * n_classes`
     # Output shape of the confidence layers: `(batch, height, width, n_boxes * n_classes)`

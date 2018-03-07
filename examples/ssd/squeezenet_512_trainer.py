@@ -9,26 +9,23 @@ from __future__ import division
 from __future__ import print_function
 
 from math import ceil
+
 import numpy as np
+from keras import backend as K
+from keras.callbacks import EarlyStopping
+from keras.callbacks import LearningRateScheduler, ModelCheckpoint
+from keras.optimizers import Adam
 from matplotlib import pyplot as plt
 
-from keras import backend as K
-from keras.optimizers import Adam
-from keras.models import load_model
-from keras.callbacks import ModelCheckpoint, LearningRateScheduler
-from keras.callbacks import EarlyStopping, ReduceLROnPlateau, TensorBoard
-
-from eagle.brain.ssd.SSDLoss import SSDLoss
+from datum.meta.BatchGenerator import BatchGenerator
 from eagle.brain.ssd.SSDBoxEncoder import SSDBoxEncoder
-from eagle.brain.ssd.BatchGenerator import BatchGenerator
-from eagle.brain.ssd.Layer_AnchorBoxes import AnchorBoxes
-from eagle.brain.ssd.Layer_L2Normalization import L2Normalization
-from eagle.brain.ssd.models.feature_base_squeezenet import base_feature_model as squeezenet_300
-from eagle.brain.ssd.box_encode_decode_utils import decode_y, decode_y2
+from eagle.brain.ssd.SSDLoss import SSDLoss
+from eagle.brain.ssd.box_encode_decode_utils import decode_y2
+from eagle.brain.ssd.models.squeezenet_512 import \
+    base_feature_model as squeezenet_512
 
-
-img_height = 300 # Height of the input images
-img_width = 300 # Width of the input images
+img_height = 512 # Height of the input images
+img_width = 512 # Width of the input images
 img_channels = 3 # Number of color channels of the input images
 n_classes = 21 # Number of classes including the background class, e.g. 21 for the Pascal VOC datasets
 scales = [0.1, 0.2, 0.37, 0.54, 0.71, 0.88, 1.05] # The anchor box scaling factors used in the original SSD300 for the Pascal VOC datasets, the factors for the MS COCO datasource are smaller, namely [0.07, 0.15, 0.33, 0.51, 0.69, 0.87, 1.05]
@@ -46,7 +43,7 @@ normalize_coords = True
 
 # 1: Build the Keras model
 K.clear_session() # Clear previous models from memory.
-model, predictor_sizes = squeezenet_300(image_size=(img_height, img_width, img_channels),
+model, predictor_sizes = squeezenet_512(image_size=(img_height, img_width, img_channels),
                                  n_classes=n_classes,
                                  min_scale=None, # You could pass a min scale and max scale instead of the `scales` list, but we're not doing that here
                                  max_scale=None,
@@ -64,13 +61,16 @@ adam = Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)
 ssd_loss = SSDLoss(neg_pos_ratio=3, n_neg_min=0, alpha=1.0)
 model.compile(optimizer=adam, loss=ssd_loss.compute_loss)
 
+model.summary()
+
+
 # 2: Load the trained model weights into the model.
 # TODO: Set the path to the model weights.
-K.clear_session() # Clear previous models from memory.
-model_path = ''
-model = load_model(model_path, custom_objects={'AnchorBoxes': AnchorBoxes,
-                                               'L2Normalization': L2Normalization,
-                                               'compute_loss': ssd_loss.compute_loss})
+# K.clear_session() # Clear previous models from memory.
+# model_path = ''
+# model = load_model(model_path, custom_objects={'AnchorBoxes': AnchorBoxes,
+#                                                'L2Normalization': L2Normalization,
+#                                                'compute_loss': ssd_loss.compute_loss})
 
 # TODO: Set the path to the `.h5` file of the model to be loaded.
 # model_path = 'ssd300_0.h5'
@@ -108,51 +108,36 @@ val_dataset = BatchGenerator(box_output_format=['class_id', 'xmin', 'xmax', 'ymi
 
 # 2: Parse the image and label lists for the training and validation datasets. This can take a while.
 # The directories that contain the images.
-dataset_prefix = "/Volumes/projects/repos/VOC.SOURCE.DATA/"
-VOC_2007_images_path      = dataset_prefix + 'VOCdevkit/VOC2007/JPEGImages/'
-VOC_2007_test_images_path = dataset_prefix + 'VOCdevkit/VOC2007/JPEGImages/'
-VOC_2012_images_path      = dataset_prefix + 'VOCdevkit/VOC2012/JPEGImages/'
+dataset_prefix = "/Volumes/projects/repos/RSI/LSD10/"
+lsd12_images_path      = dataset_prefix + 'JPEGImages/'
 
 # The directories that contain the annotations.
-VOC_2007_annotations_path      = dataset_prefix + 'VOCdevkit/VOC2007/Annotations/'
-VOC_2007_test_annotations_path = dataset_prefix + 'VOCdevkit/VOC2007/Annotations/'
-VOC_2012_annotations_path      = dataset_prefix + 'VOCdevkit/VOC2012/Annotations/'
+lsd12_annotations_path      = dataset_prefix + 'Annotations/'
 
 # The paths to the image sets.
-VOC_2007_train_image_set_path    = dataset_prefix + 'VOCdevkit/VOC2007/ImageSets/Main/train.txt'
-VOC_2012_train_image_set_path    = dataset_prefix + 'VOCdevkit/VOC2012/ImageSets/Main/train.txt'
-VOC_2007_val_image_set_path      = dataset_prefix + 'VOCdevkit/VOC2007/ImageSets/Main/val.txt'
-VOC_2012_val_image_set_path      = dataset_prefix + 'VOCdevkit/VOC2012/ImageSets/Main/val.txt'
-VOC_2007_trainval_image_set_path = dataset_prefix + 'VOCdevkit/VOC2007/ImageSets/Main/trainval.txt'
-VOC_2012_trainval_image_set_path = dataset_prefix + 'VOCdevkit/VOC2012/ImageSets/Main/trainval.txt'
-VOC_2007_test_image_set_path     = dataset_prefix + 'VOCdevkit/VOC2007/ImageSets/Main/test.txt'
+lsd12_train_image_set_path    = dataset_prefix + 'train.txt'
+lsd12_val_image_set_path      = dataset_prefix + 'valid.txt'
+lsd12_test_image_set_path     = dataset_prefix + 'test.txt'
+
 
 # The XML parser needs to now what object class names to look for and in which order to map them to integers.
 classes = ['background',
-           'aeroplane', 'bicycle', 'bird', 'boat',
-           'bottle', 'bus', 'car', 'cat',
-           'chair', 'cow', 'diningtable', 'dog',
-           'horse', 'motorbike', 'person', 'pottedplant',
-           'sheep', 'sofa', 'train', 'tvmonitor']
+           'airplane', 'ship', 'storagetank', 'baseballdiamond',
+           'tenniscourt', 'basketballcourt', 'groundtrackfield', 
+           'harbor', 'bridge', 'vehicle', 'van', 'truck']
 
-train_dataset.parse_xml(images_paths=[VOC_2007_images_path,
-                                      VOC_2007_test_images_path,
-                                      VOC_2012_images_path],
-                        annotations_paths=[VOC_2007_annotations_path,
-                                           VOC_2007_test_annotations_path,
-                                           VOC_2012_annotations_path],
-                        image_set_paths=[VOC_2007_trainval_image_set_path,
-                                         VOC_2007_test_image_set_path,
-                                         VOC_2012_train_image_set_path],
+train_dataset.parse_xml(images_paths=[lsd12_images_path],
+                        annotations_paths=[lsd12_annotations_path],
+                        image_set_paths=[lsd12_train_image_set_path],
                         classes=classes,
                         include_classes='all',
                         exclude_truncated=False,
                         exclude_difficult=False,
                         ret=False)
 
-val_dataset.parse_xml(images_paths=[VOC_2012_images_path],
-                      annotations_paths=[VOC_2012_annotations_path],
-                      image_set_paths=[VOC_2012_val_image_set_path],
+val_dataset.parse_xml(images_paths=[lsd12_images_path],
+                      annotations_paths=[lsd12_annotations_path],
+                      image_set_paths=[lsd12_val_image_set_path],
                       classes=classes,
                       include_classes='all',
                       exclude_truncated=False,
@@ -160,7 +145,7 @@ val_dataset.parse_xml(images_paths=[VOC_2012_images_path],
                       ret=False)
 
 # 4: Set the batch size.
-batch_size = 64 # Change the batch size if you like, or if you run into memory issues with your GPU.
+batch_size = 12 # Change the batch size if you like, or if you run into memory issues with your GPU.
 
 # 5: Set the image processing / data augmentation options and create generator handles.
 train_generator = train_dataset.generate(batch_size=batch_size,
@@ -216,12 +201,12 @@ def lr_schedule(epoch):
         return 0.00001
 
 # TODO: Set the number of epochs to train for.
-epochs = 1000
+epochs = 350
 
 history = model.fit_generator(generator = train_generator,
                               steps_per_epoch = ceil(n_train_samples/batch_size),
                               epochs = epochs,
-                              callbacks = [ModelCheckpoint('weights/squeezenet300_model_epoch-{epoch:02d}_loss-{loss:.4f}_val_loss-{val_loss:.4f}.h5',
+                              callbacks = [ModelCheckpoint('weights/new_squeezenet512_model_epoch-{epoch:02d}_loss-{loss:.4f}_val_loss-{val_loss:.4f}.h5',
                                                            monitor='val_loss',
                                                            verbose=1,
                                                            save_best_only=True,
@@ -237,7 +222,7 @@ history = model.fit_generator(generator = train_generator,
 
 # TODO: Set the filename (without the .h5 file extension!) under which to save the model and weights.
 #       Do the same in the `ModelCheckpoint` callback above.
-model_name = 'squeezenet300'
+model_name = 'new_squeezenet512'
 model.save('weights/{}.h5'.format(model_name))
 model.save_weights('weights/{}_weights.h5'.format(model_name))
 

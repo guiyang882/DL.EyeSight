@@ -8,8 +8,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import os
-import math
 import random
 import cv2
 import numpy as np
@@ -19,19 +17,16 @@ from threading import Thread
 from datum.meta.dataset import DataSet
 
 
-class TextDataSet(DataSet):
+class YoloDataSet(DataSet):
     """TextDataSet
-  process text input file dataset 
-  text file format:
+    process text input file dataset
+    text file format:
     image_path xmin1 ymin1 xmax1 ymax1 class1 xmin2 ymin2 xmax2 ymax2 class2
-  """
+    """
 
     def __init__(self, common_params, dataset_params):
-        """
-    Args:
-      common_params: A dict
-      dataset_params: A dict
-    """
+        super(YoloDataSet, self).__init__(common_params, dataset_params)
+
         # process params
         self.data_path = str(dataset_params['path'])
         self.width = int(common_params['image_size'])
@@ -70,8 +65,6 @@ class TextDataSet(DataSet):
             t.start()
 
     def record_producer(self):
-        """record_queue's processor
-    """
         while True:
             if self.record_point % self.record_number == 0:
                 random.shuffle(self.record_list)
@@ -79,14 +72,20 @@ class TextDataSet(DataSet):
             self.record_queue.put(self.record_list[self.record_point])
             self.record_point += 1
 
+    def record_customer(self):
+        while True:
+            item = self.record_queue.get()
+            out = self.record_process(item)
+            self.image_label_queue.put(out)
+
     def record_process(self, record):
         """record process
-    Args: record 
-    Returns:
-      image: 3-D ndarray
-      labels: 2-D list [self.max_objects, 5] (xcenter, ycenter, w, h, class_num)
-      object_num:  total object number  int 
-    """
+        Args: record
+        Returns:
+          image: 3-D ndarray
+          labels: 2-D list [self.max_objects, 5] (xcenter, ycenter, w, h, class_num)
+          object_num:  total object number  int
+        """
         image = cv2.imread(record[0])
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         h = image.shape[0]
@@ -120,21 +119,13 @@ class TextDataSet(DataSet):
                 break
         return [image, labels, object_num]
 
-    def record_customer(self):
-        """record queue's customer
-    """
-        while True:
-            item = self.record_queue.get()
-            out = self.record_process(item)
-            self.image_label_queue.put(out)
-
     def batch(self):
         """get batch
-    Returns:
-      images: 4-D ndarray [batch_size, height, width, 3]
-      labels: 3-D ndarray [batch_size, max_objects, 5]
-      objects_num: 1-D ndarray [batch_size]
-    """
+        Returns:
+          images: 4-D ndarray [batch_size, height, width, 3]
+          labels: 3-D ndarray [batch_size, max_objects, 5]
+          objects_num: 1-D ndarray [batch_size]
+        """
         images = []
         labels = []
         objects_num = []

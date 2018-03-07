@@ -14,11 +14,11 @@ from configparser import ConfigParser
 def process_config(conf_file):
     """process configure file to generate CommonParams, DataSetParams, NetParams
 
-  Args:
-    conf_file: configure file path 
-  Returns:
-    CommonParams, DataSetParams, NetParams, SolverParams
-  """
+    Args:
+        conf_file: configure file path
+    Returns:
+        CommonParams, DataSetParams, NetParams, SolverParams
+    """
     common_params = {}
     dataset_params = {}
     net_params = {}
@@ -48,3 +48,11 @@ def process_config(conf_file):
                 solver_params[option] = config.get(section, option)
 
     return common_params, dataset_params, net_params, solver_params
+
+if __name__ == '__main__':
+    common_params, dataset_params, net_params, solver_params = process_config(
+        "../../conf/ssd_train.cfg")
+    print(common_params)
+    print(dataset_params)
+    import json
+    print(json.loads(dataset_params["classes"]))

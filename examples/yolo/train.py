@@ -11,7 +11,7 @@ from __future__ import print_function
 from optparse import OptionParser
 
 from datum.utils.process_config import process_config
-from datum.meta.text_dataset import TextDataSet
+from datum.meta.yolo_dataset import YoloDataSet
 from eagle.brain.yolo.yolo_tiny_net import YoloTinyNet
 from eagle.brain.solver.yolo_solver import YoloSolver
 
@@ -27,7 +27,7 @@ else:
   exit(0)
 
 common_params, dataset_params, net_params, solver_params = process_config(conf_file)
-dataset = TextDataSet(common_params, dataset_params)
+dataset = YoloDataSet(common_params, dataset_params)
 net = YoloTinyNet(common_params, net_params)
 solver = YoloSolver(dataset, net, common_params, solver_params)
 solver.solve()

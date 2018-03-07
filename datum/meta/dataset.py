@@ -10,17 +10,12 @@ from __future__ import print_function
 
 
 class DataSet(object):
-    """Base DataSet
-  """
-
     def __init__(self, common_params, dataset_params):
-        """
-    common_params: A params dict 
-    dataset_params: A params dict
-    """
-        raise NotImplementedError
+        if not isinstance(common_params, dict):
+            raise TypeError("common_params must be dict")
+        if not isinstance(dataset_params, dict):
+            raise TypeError("dataset_params must be dict")
+
 
     def batch(self):
-        """Get batch
-    """
         raise NotImplementedError
