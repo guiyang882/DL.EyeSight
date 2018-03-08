@@ -8,19 +8,19 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import tensorflow as tf
-import numpy as np
-import re
 import sys
 import time
 from datetime import datetime
+
+import numpy as np
+import tensorflow as tf
 
 from eagle.brain.solver.solver import Solver
 
 
 class YoloSolver(Solver):
     """Yolo Solver
-  """
+    """
 
     def __init__(self, dataset, net, common_params, solver_params):
         # process params
@@ -42,15 +42,15 @@ class YoloSolver(Solver):
     def _train(self):
         """Train model
 
-    Create an optimizer and apply to all trainable variables.
+        Create an optimizer and apply to all trainable variables.
 
-    Args:
-      total_loss: Total loss from net.loss()
-      global_step: Integer Variable counting the number of training steps
-      processed
-    Returns:
-      train_op: op for training
-    """
+        Args:
+          total_loss: Total loss from net.loss()
+          global_step: Integer Variable counting the number of training steps
+          processed
+        Returns:
+          train_op: op for training
+        """
 
         opt = tf.train.MomentumOptimizer(self.learning_rate, self.moment)
         grads = opt.compute_gradients(self.total_loss)

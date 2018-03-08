@@ -11,6 +11,7 @@ from __future__ import print_function
 from math import ceil
 
 import numpy as np
+from datum.meta.BatchGenerator import BatchGenerator
 from keras import backend as K
 from keras.callbacks import EarlyStopping
 from keras.callbacks import LearningRateScheduler, ModelCheckpoint
@@ -18,8 +19,7 @@ from keras.models import load_model
 from keras.optimizers import Adam
 from matplotlib import pyplot as plt
 
-from datum.meta.BatchGenerator import BatchGenerator
-from datum.meta.SSDBoxEncoder import SSDBoxEncoder
+from datum.models.ssd.SSDBoxEncoder import SSDBoxEncoder
 from eagle.brain.ssd.Layer_AnchorBoxes import AnchorBoxes
 from eagle.brain.ssd.Layer_L2Normalization import L2Normalization
 from eagle.brain.ssd.SSDLoss import SSDLoss
