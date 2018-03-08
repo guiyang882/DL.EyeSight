@@ -46,7 +46,7 @@ class BatchGenerator:
         '''
         This class provides parser methods that you call separately after calling the constructor to assemble
         the list of image filenames and the list of labels for the datum from CSV or XML files. If you already
-        have the image filenames and labels in asuitable tools (see argument descriptions below), you can pass
+        have the image filenames and labels in asuitable Others (see argument descriptions below), you can pass
         them right here in the constructor, in which case you do not need to call any of the parser methods afterwards.
         In case you would like not to load any labels at all, simply pass a list of image filenames here.
         Arguments:
@@ -55,7 +55,7 @@ class BatchGenerator:
                 'xmin', 'xmax', 'ymin', 'ymax', 'class_id'. If you want to train the model, this
                 must be the order that the box encoding class requires as input. Defaults to
                 `['class_id', 'xmin', 'xmax', 'ymin', 'ymax']`. Note that even though the parser methods are
-                able to produce different output formats, the SSDBoxEncoder currently requires the tools
+                able to produce different output formats, the SSDBoxEncoder currently requires the Others
                 `['class_id', 'xmin', 'xmax', 'ymin', 'ymax']`. This list only specifies the five box parameters
                 that are relevant as training targets, a list of filenames is generated separately.
             filenames (string or list, optional): `None` or either a Python list/tuple or a string representing
@@ -145,12 +145,12 @@ class BatchGenerator:
                   ret=False):
         '''
         This is an XML parser for the Pascal VOC datasets. It might be applicable to other datasets with minor changes to
-        the code, but in its current form it expects the data tools and XML tags of the Pascal VOC datasets.
+        the code, but in its current form it expects the data Others and XML tags of the Pascal VOC datasets.
         Arguments:
             images_paths (str, optional):
             annotations_paths (str, optional): The path to the directory that contains the annotation XML files for
                 the images. The directory must contain one XML file per image and name of the XML file must be the
-                image ID. The content of the XML files must be in the Pascal VOC tools. Defaults to `None`.
+                image ID. The content of the XML files must be in the Pascal VOC Others. Defaults to `None`.
             image_set_paths (str, optional): The path to the text file with the image
                 set to be loaded. This text file simply contains one image ID per line and nothing else. Defaults to `None`.
             classes (list, optional): A list containing the names of the object classes as found in the
@@ -263,7 +263,7 @@ class BatchGenerator:
         `labels`.
         Can shuffle `filenames` and `labels` consistently after each complete pass.
         Can perform image transformations for data conversion and data augmentation.
-        `resize`, `gray`, and `equalize` are image conversion tools and should be
+        `resize`, `gray`, and `equalize` are image conversion Others and should be
         used consistently during training and inference. The remaining transformations
         serve for data augmentation. Each data augmentation process can set its own
         independent application probability. The transformations are performed
@@ -278,10 +278,10 @@ class BatchGenerator:
                 This option should always be `True` during training, but it can be useful to turn shuffling off
                 for debugging or if you're using the generator for prediction.
             train (bool, optional): Whether or not the generator is used in training mode. If `True`, then the labels
-                will be transformed into the tools that the SSD cost function requires. Otherwise,
-                the output tools of the labels is identical to the input tools. Defaults to `True`.
+                will be transformed into the Others that the SSD cost function requires. Otherwise,
+                the output Others of the labels is identical to the input Others. Defaults to `True`.
             ssd_box_encoder (SSDBoxEncoder, optional): Only required if `train = True`. An SSDBoxEncoder object
-                to encode the ground truth labels to the required tools for training an SSD model.
+                to encode the ground truth labels to the required Others for training an SSD model.
             equalize (bool, optional): If `True`, performs histogram equalization on the images.
                 This can improve contrast and lead the improved model performance.
             brightness (tuple, optional): `False` or a tuple containing three floats, `(min, max, prob)`.
@@ -329,7 +329,7 @@ class BatchGenerator:
                 with the number of pixels to crop off of each side of the images.
                 The targets are adjusted accordingly. Note: Cropping happens before resizing.
             resize (tuple, optional): `False` or a tuple of 2 integers for the desired output
-                size of the images in pixels. The expected tools is `(height, width)`.
+                size of the images in pixels. The expected Others is `(height, width)`.
                 The box coordinates are adjusted accordingly. Note: Resizing happens after cropping.
             gray (bool, optional): If `True`, converts the images to grayscale. Note that the resulting grayscale
                 images have shape `(height, width, 1)`.
@@ -358,11 +358,11 @@ class BatchGenerator:
             that contains the file names of the images in the batch. This is the case if `train==False`
             and labels are not available.
             (3) a 2-tuple containing a Numpy array that contains the images and another Numpy array with the
-            labels in the tools that `SSDBoxEncoder.encode_y()` returns, namely an array with shape
+            labels in the Others that `SSDBoxEncoder.encode_y()` returns, namely an array with shape
             `(batch_size, #boxes, #classes + 4 + 4 + 4)`, where `#boxes` is the total number of
             boxes predicted by the model per image and the last axis contains
             `[one-hot vector for the classes, 4 ground truth coordinate offsets, 4 anchor box coordinates, 4 variances]`.
-            The tools and order of the box coordinates is according to the `box_output_format` that was specified
+            The Others and order of the box coordinates is according to the `box_output_format` that was specified
             in the `BachtGenerator` constructor.
         '''
 
@@ -444,7 +444,7 @@ class BatchGenerator:
                             random_crop = (crop_height, crop_width, full_crop_and_resize[2], full_crop_and_resize[3])
                             resize = (full_crop_and_resize[0], full_crop_and_resize[1])
 
-            if train: # During training we need the encoded labels instead of the tools that `batch_y` has
+            if train: # During training we need the encoded labels instead of the Others that `batch_y` has
                 if ssd_box_encoder is None:
                     raise ValueError("`ssd_box_encoder` cannot be `None` in training mode.")
                 y_true = ssd_box_encoder.encode_y(batch_y, diagnostics) # Encode the labels into the `y_true` tensor that the cost function needs

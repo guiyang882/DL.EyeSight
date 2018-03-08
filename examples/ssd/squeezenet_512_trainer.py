@@ -18,7 +18,7 @@ from keras.optimizers import Adam
 from matplotlib import pyplot as plt
 
 from datum.meta.BatchGenerator import BatchGenerator
-from eagle.brain.ssd.SSDBoxEncoder import SSDBoxEncoder
+from datum.meta.SSDBoxEncoder import SSDBoxEncoder
 from eagle.brain.ssd.SSDLoss import SSDLoss
 from eagle.brain.ssd.box_encode_decode_utils import decode_y2
 from eagle.brain.ssd.models.squeezenet_512 import \
@@ -38,7 +38,7 @@ aspect_ratios = [[0.5, 1.0, 2.0],
 two_boxes_for_ar1 = True
 limit_boxes = False # Whether or not you want to limit the anchor boxes to lie entirely within the image boundaries
 variances = [0.1, 0.1, 0.2, 0.2] # The variances by which the encoded target coordinates are scaled as in the original implementation
-coords = 'centroids' # Whether the box coordinates to be used as targets for the model should be in the 'centroids' or 'minmax' tools, see documentation
+coords = 'centroids' # Whether the box coordinates to be used as targets for the model should be in the 'centroids' or 'minmax' Others, see documentation
 normalize_coords = True
 
 # 1: Build the Keras model
@@ -82,7 +82,7 @@ model.summary()
 #                                                'L2Normalization': L2Normalization,
 #                                                'compute_loss': ssd_loss.compute_loss})
 
-# 3: Instantiate an encoder that can encode ground truth labels into the tools needed by the SSD loss function.
+# 3: Instantiate an encoder that can encode ground truth labels into the Others needed by the SSD loss function.
 # The encoder constructor needs the spatial dimensions of the model's predictor layers to create the anchor boxes.
 ssd_box_encoder = SSDBoxEncoder(img_height=img_height,
                                 img_width=img_width,

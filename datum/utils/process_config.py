@@ -26,7 +26,7 @@ def process_config(conf_file):
 
     # configure_parser
     config = ConfigParser()
-    config.read(conf_file)
+    config.read(conf_file, encoding="utf8")
 
     # sections and options
     for section in config.sections():
@@ -56,3 +56,5 @@ if __name__ == '__main__':
     print(dataset_params)
     import json
     print(json.loads(dataset_params["classes"]))
+    print(net_params["aspect_ratios"])
+    # print(json.loads(net_params["aspect_ratios"]))

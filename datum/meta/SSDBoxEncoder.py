@@ -10,16 +10,16 @@ from __future__ import print_function
 
 '''
 A class to transform ground truth labels for object detection in images
-(2D bounding box coordinates and class labels) to the tools required for
+(2D bounding box coordinates and class labels) to the Others required for
 training an SSD model, and to transform predictions of the SSD model back
-to the original tools of the input labels.
+to the original Others of the input labels.
 In the process of encoding ground truth labels, a template of anchor boxes
 is being built, which are subsequently matched to the ground truth boxes
 via an intersection-over-union threshold criterion.
 '''
 
 import numpy as np
-from .box_encode_decode_utils import iou, convert_coordinates
+from eagle.brain.ssd.box_encode_decode_utils import iou, convert_coordinates
 
 
 class SSDBoxEncoder:
@@ -43,15 +43,15 @@ class SSDBoxEncoder:
             to be precise) for the encoded ground truth (i.e. target) box coordinates. A variance value of 1.0 would apply
             no scaling at all to the targets, while values in (0,1) upscale the encoded targets and values greater than 1.0
             downscale the encoded targets. If you want to reproduce the configuration of the original SSD,
-            set this to `[0.1, 0.1, 0.2, 0.2]`, provided the coordinate tools is 'centroids'. Defaults to `[1.0, 1.0, 1.0, 1.0]`.
+            set this to `[0.1, 0.1, 0.2, 0.2]`, provided the coordinate Others is 'centroids'. Defaults to `[1.0, 1.0, 1.0, 1.0]`.
         pos_iou_threshold (float, optional): The intersection-over-union similarity threshold that must be
             met in order to match a given ground truth box to a given anchor box. Defaults to 0.5.
         neg_iou_threshold (float, optional): The maximum allowed intersection-over-union similarity of an
             anchor box with any ground truth box to be labeled a negative (i.e. background) box. If an
             anchor box is neither a positive, nor a negative box, it will be ignored during training.
-        coords (str, optional): The box coordinate tools to be used internally in the model (i.e. this is not the input tools
-            of the ground truth labels). Can be either 'centroids' for the tools `(cx, cy, w, h)` (box center coordinates, width,
-            and height) or 'minmax' for the tools `(xmin, xmax, ymin, ymax)`. Defaults to 'centroids'.
+        coords (str, optional): The box coordinate Others to be used internally in the model (i.e. this is not the input Others
+            of the ground truth labels). Can be either 'centroids' for the Others `(cx, cy, w, h)` (box center coordinates, width,
+            and height) or 'minmax' for the Others `(xmin, xmax, ymin, ymax)`. Defaults to 'centroids'.
         normalize_coords (bool, optional): If `True`, the encoder uses relative instead of absolute coordinates.
             This means instead of using absolute tartget coordinates, the encoder will scale all coordinates to be within [0,1].
             This way learning becomes independent of the input image size. Defaults to `False`.
@@ -385,7 +385,7 @@ class SSDBoxEncoder:
 
     def encode_y(self, ground_truth_labels, diagnostics=False):
         '''
-        Convert ground truth bounding box data into a suitable tools to train an SSD model.
+        Convert ground truth bounding box data into a suitable Others to train an SSD model.
         For each image in the batch, each ground truth bounding box belonging to that image will be compared against each
         anchor box in a template with respect to their jaccard similarity. If the jaccard similarity is greater than
         or equal to the set threshold, the boxes will be matched, meaning that the ground truth box coordinates and class
@@ -396,7 +396,7 @@ class SSDBoxEncoder:
         Arguments:
             ground_truth_labels (list): A python list of length `batch_size` that contains one 2D Numpy array
                 for each batch image. Each such array has `k` rows for the `k` ground truth bounding boxes belonging
-                to the respective image, and the data for each ground truth bounding box has the tools
+                to the respective image, and the data for each ground truth bounding box has the Others
                 `(class_id, xmin, xmax, ymin, ymax)`, and `class_id` must be an integer greater than 0 for all boxes
                 as class_id 0 is reserved for the background class.
             diagnostics (bool, optional): If `True`, not only the encoded ground truth tensor will be returned,

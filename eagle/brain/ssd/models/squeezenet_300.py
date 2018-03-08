@@ -43,7 +43,7 @@ def base_feature_model(image_size, n_classes,
     Note: Requires Keras v2.0 or later. Currently works only with the
     TensorFlow backend (v1.0 or later).
     Arguments:
-        image_size (tuple): The input image size in the tools `(height, width, channels)`.
+        image_size (tuple): The input image size in the Others `(height, width, channels)`.
         n_classes (int): The number of categories for classification including
             the background class (i.e. the number of positive classes +1 for
             the background calss).
@@ -86,9 +86,9 @@ def base_feature_model(image_size, n_classes,
             to be precise) for the encoded predicted box coordinates. A variance value of 1.0 would apply
             no scaling at all to the predictions, while values in (0,1) upscale the encoded predictions and values greater
             than 1.0 downscale the encoded predictions. Defaults to `[0.1, 0.1, 0.2, 0.2]`, following the original implementation.
-            The coordinate tools must be 'centroids'.
-        coords (str, optional): The box coordinate tools to be used. Can be either 'centroids' for the tools
-            `(cx, cy, w, h)` (box center coordinates, width, and height) or 'minmax' for the tools
+            The coordinate Others must be 'centroids'.
+        coords (str, optional): The box coordinate Others to be used. Can be either 'centroids' for the Others
+            `(cx, cy, w, h)` (box center coordinates, width, and height) or 'minmax' for the Others
             `(xmin, xmax, ymin, ymax)`. Defaults to 'centroids', following the original implementation.
         normalize_coords (bool, optional): Set to `True` if the model is supposed to use relative instead of absolute coordinates,
             i.e. if the model predicts box coordinates within [0,1] instead of absolute coordinates. Defaults to `False`.
@@ -164,7 +164,7 @@ def base_feature_model(image_size, n_classes,
         # n_boxes_conv8_2 = n_boxes
         # n_boxes_conv9_2 = n_boxes
 
-    # Input image tools
+    # Input image Others
     img_height, img_width, img_channels = image_size[0], image_size[1], image_size[2]
 
     ### Design the actual network

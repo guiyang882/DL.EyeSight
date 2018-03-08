@@ -25,7 +25,7 @@ reload(sys)
 import cv2
 
 from datum.utils import tools
-from datum.tools.lsd12 import label_config as config
+from Others.lsd12 import label_config as config
 
 
 nwpu_voc_dir = "/Volumes/projects/repos/RSI/NWPUVHR10/NWPUVOCFORMAT/"
@@ -154,5 +154,5 @@ def split_train_valid_test():
 
 if __name__ == '__main__':
     split_train_valid_test()
-    # tools.show_targets(lsd_voc_image_dir, lsd_voc_anno_dir)
+    # Others.show_targets(lsd_voc_image_dir, lsd_voc_anno_dir)
     pass
