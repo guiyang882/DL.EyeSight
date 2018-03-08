@@ -19,7 +19,7 @@ from keras.models import load_model
 from keras.optimizers import Adam
 from matplotlib import pyplot as plt
 
-from datum.models.ssd.SSDBoxEncoder import SSDBoxEncoder
+from datum.models.ssd.box_encoder import SSDBoxEncoder
 from eagle.brain.ssd.Layer_AnchorBoxes import AnchorBoxes
 from eagle.brain.ssd.Layer_L2Normalization import L2Normalization
 from eagle.brain.ssd.SSDLoss import SSDLoss
