@@ -65,8 +65,8 @@ class SSDSolver(Solver):
         model_spec = self.net.inference(self.images)
         self.predicts = model_spec["predictions"]
         predict_shape = model_spec["predictions"].get_shape().as_list()
-        boxes_num = predict_shape[0] // self.batch_size
-        encode_length = predict_shape[1]
+        boxes_num = predict_shape[1]
+        encode_length = predict_shape[2]
 
         '''
         [32, 37, 37, 4, 8] ---> (cx, cy, w, h, variances)
@@ -109,7 +109,7 @@ class SSDSolver(Solver):
             start_time = time.time()
             np_images, np_labels, np_objects_num = self.dataset.batch()
 
-            _, loss_value, nilboy = sess.run(
+            _, loss_value = sess.run(
                 [self.train_op, self.total_loss],
                 feed_dict={
                     self.images: np_images,

@@ -17,6 +17,7 @@ import cv2
 import numpy as np
 
 from datum.meta.dataset import DataSet
+from datum.models.ssd.box_encoder import BoxEncoder
 
 
 class SSDDataSet(DataSet):
@@ -26,7 +27,7 @@ class SSDDataSet(DataSet):
     image_path xmin1 ymin1 xmax1 ymax1 class1 xmin2 ymin2 xmax2 ymax2 class2
     """
 
-    def __init__(self, common_params, dataset_params):
+    def __init__(self, common_params, dataset_params, box_encoder_params):
         super(SSDDataSet, self).__init__(common_params, dataset_params)
 
         # process params
@@ -44,6 +45,8 @@ class SSDDataSet(DataSet):
 
         self.upper_resize_rate = float(dataset_params["upper_resize_rate"])
         self.lower_resize_rate = float(dataset_params["lower_resize_rate"])
+
+        self.box_encoder = BoxEncoder(common_params, box_encoder_params)
 
         # record and image_label queue
         self.record_queue = Queue(maxsize=10000)
@@ -95,7 +98,10 @@ class SSDDataSet(DataSet):
             item = self.record_queue.get()
             out = self.record_process(item)
             if out is not None:
-                self.image_label_queue.put(out)
+                # 在归整完数据之后，要对object_label中使用BoxEncoder的调用
+                image, gt_labels = out[:]
+                y_true_encoded = self.box_encoder.encode_y(gt_labels)
+                self.image_label_queue.put([image, y_true_encoded])
 
     def record_process(self, record):
         """对于每个样本的数据具体该如何处理
@@ -213,7 +219,7 @@ class SSDDataSet(DataSet):
         """get batch
         Returns:
           images: 4-D ndarray [batch_size, height, width, 3]
-          labels: 3-D ndarray [batch_size, max_objects, 5]
+          labels: (batch_size, #boxes, #classes + 4 + 4 + 4)
         """
         images = []
         labels = []
@@ -223,5 +229,5 @@ class SSDDataSet(DataSet):
             labels.append(label)
         images = np.asarray(images, dtype=np.float32)
         images = images / 255 * 2 - 1
-        labels = np.asarray(labels, dtype=np.float32)
+        # labels = np.asarray(labels, dtype=np.float32)
         return images, labels

@@ -95,14 +95,15 @@ class BoxEncoder:
                 else:
                     self.n_boxes.append(len(aspect_ratios))
 
-
     def check_valid(self):
         # 检测参数输入是否在正确
         if len(self.scales) != self.predictor_sizes.shape[0] + 1:
-            raise ValueError("len(self.scales) != self.predictor_sizes.shape[0] + 1")
+            raise ValueError(
+                "len(self.scales) != self.predictor_sizes.shape[0] + 1")
 
-        if len(self.scales) != len(self.aspect_ratios_per_layer):
-            raise ValueError("len(self.scales) != len(self.aspect_ratios_per_layer)")
+        if len(self.scales) != len(self.aspect_ratios_per_layer) + 1:
+            raise ValueError(
+                "len(self.scales) != len(self.aspect_ratios_per_layer) + 1")
 
         if len(self.variances) != 4:
             raise ValueError("len(self.variances) != 4")
@@ -116,7 +117,8 @@ class BoxEncoder:
 
         if not (self.coords == 'minmax' or self.coords == 'centroids'):
             raise ValueError(
-                "Unexpected value for `coords`. Supported values are 'minmax' and 'centroids'.")
+                "Unexpected value for `coords`. "
+                "Supported values are 'minmax' and 'centroids'.")
 
     def encode_y(self, ground_truth_labels):
         '''

@@ -714,6 +714,12 @@ class SSDVGG(Net):
             mbox_loc,
             mbox_priorbox],
             axis=1, name='predictions')
+        predict_shape = predictions.get_shape().as_list()
+        predictions = tf.reshape(
+            predictions,
+            shape=(self.batch_size,
+                   predict_shape[0] // self.batch_size,
+                   self.num_classes + 4 + 8))
 
         # Get the spatial dimensions (height, width) of the predictor conv layers, we need them to
         # be able to generate the default boxes for the matching process outside of the model during training.
