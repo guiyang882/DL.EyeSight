@@ -182,13 +182,5 @@ class Net(object):
         """
         raise NotImplementedError
 
-    def loss(self, predicts, labels, objects_num):
-        """Add Loss to all the trainable variables
-
-        Args:
-          predicts: 4-D tensor [batch_size, cell_size, cell_size, 5 * boxes_per_cell]
-          ===> (num_classes, boxes_per_cell, 4 * boxes_per_cell)
-          labels  : 3-D tensor of [batch_size, max_objects, 5]
-          objects_num: 1-D tensor [batch_size]
-        """
+    def loss(self, y_true, y_pred):
         raise NotImplementedError

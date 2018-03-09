@@ -14,7 +14,6 @@ import tensorflow as tf
 from eagle.brain.ssd.loss import Loss
 from eagle.brain.ssd.models.net import Net
 from eagle.brain.ssd.anchor_boxes import AnchorBoxes
-# from eagle.brain.ssd.normalization import L2Normalization
 
 
 class SSDVGG(Net):
@@ -60,14 +59,13 @@ class SSDVGG(Net):
             elif c == ']':
                 if len(tmp):
                     aspect_ratios_per_layer.append(
-                        list(map(float, tmp.strip().split(","))))
+                        list(map(float, tmp.strip(',').split(","))))
                 seq_stack.pop()
                 tmp = ""
             elif c.isdigit() or c == '.' or c == ',':
                 tmp += c
             else:
                 pass
-
         self.aspect_ratios_per_layer = aspect_ratios_per_layer
 
         two_boxes_for_ar1 = True if box_encoder_params["two_boxes_for_ar1"] \
@@ -93,13 +91,16 @@ class SSDVGG(Net):
 
         self.check_valid()
 
+        ## 现在要先创造出loss的损失函数的管理对象
+        self.model_loss_obj = None
+
     def check_valid(self):
         # 检测参数输入是否在正确
         if len(self.scales) != self.predictor_sizes.shape[0] + 1:
             raise ValueError("len(self.scales) != self.predictor_sizes.shape[0] + 1")
 
-        if len(self.scales) != len(self.aspect_ratios_per_layer):
-            raise ValueError("len(self.scales) != len(self.aspect_ratios_per_layer)")
+        if len(self.scales) != len(self.aspect_ratios_per_layer) + 1:
+            raise ValueError("len(self.scales) != len(self.aspect_ratios_per_layer) + 1")
 
         if len(self.variances) != 4:
             raise ValueError("len(self.variances) != 4")
@@ -152,7 +153,7 @@ class SSDVGG(Net):
             kernel_size=(3, 3),
             activation=tf.nn.relu,
             padding='same',
-            kernel_initializer=tf.keras.initializers.he_normal,
+            kernel_initializer=tf.keras.initializers.he_normal(),
             name="conv1_1"
         )(images)
 
@@ -161,7 +162,7 @@ class SSDVGG(Net):
             kernel_size=(3, 3),
             activation=tf.nn.relu,
             padding='same',
-            kernel_initializer=tf.keras.initializers.he_normal,
+            kernel_initializer=tf.keras.initializers.he_normal(),
             name="conv1_2"
         )(conv1_1)
 
@@ -177,7 +178,7 @@ class SSDVGG(Net):
             kernel_size=(3, 3),
             activation=tf.nn.relu,
             padding='same',
-            kernel_initializer=tf.keras.initializers.he_normal,
+            kernel_initializer=tf.keras.initializers.he_normal(),
             name="conv2_1"
         )(pool1)
 
@@ -186,7 +187,7 @@ class SSDVGG(Net):
             kernel_size=(3, 3),
             activation=tf.nn.relu,
             padding='same',
-            kernel_initializer=tf.keras.initializers.he_normal,
+            kernel_initializer=tf.keras.initializers.he_normal(),
             name='conv2_2'
         )(conv2_1)
 
@@ -202,7 +203,7 @@ class SSDVGG(Net):
             kernel_size=(3, 3),
             activation=tf.nn.relu,
             padding='same',
-            kernel_initializer=tf.keras.initializers.he_normal,
+            kernel_initializer=tf.keras.initializers.he_normal(),
             name='conv3_1'
         )(pool2)
 
@@ -211,7 +212,7 @@ class SSDVGG(Net):
             kernel_size=(3, 3),
             activation=tf.nn.relu,
             padding='same',
-            kernel_initializer=tf.keras.initializers.he_normal,
+            kernel_initializer=tf.keras.initializers.he_normal(),
             name='conv3_2'
         )(conv3_1)
 
@@ -220,7 +221,7 @@ class SSDVGG(Net):
             kernel_size=(3, 3),
             activation=tf.nn.relu,
             padding='same',
-            kernel_initializer=tf.keras.initializers.he_normal,
+            kernel_initializer=tf.keras.initializers.he_normal(),
             name='conv3_3'
         )(conv3_2)
 
@@ -236,7 +237,7 @@ class SSDVGG(Net):
             kernel_size=(3, 3),
             activation=tf.nn.relu,
             padding='same',
-            kernel_initializer=tf.keras.initializers.he_normal,
+            kernel_initializer=tf.keras.initializers.he_normal(),
             name='conv4_1'
         )(pool3)
 
@@ -245,7 +246,7 @@ class SSDVGG(Net):
             kernel_size=(3, 3),
             activation=tf.nn.relu,
             padding='same',
-            kernel_initializer=tf.keras.initializers.he_normal,
+            kernel_initializer=tf.keras.initializers.he_normal(),
             name='conv4_2'
         )(conv4_1)
 
@@ -254,7 +255,7 @@ class SSDVGG(Net):
             kernel_size=(3, 3),
             activation=tf.nn.relu,
             padding='same',
-            kernel_initializer=tf.keras.initializers.he_normal,
+            kernel_initializer=tf.keras.initializers.he_normal(),
             name='conv4_3'
         )(conv4_2)
 
@@ -270,7 +271,7 @@ class SSDVGG(Net):
             kernel_size=(3, 3),
             activation=tf.nn.relu,
             padding='same',
-            kernel_initializer=tf.keras.initializers.he_normal,
+            kernel_initializer=tf.keras.initializers.he_normal(),
             name='conv5_1'
         )(pool4)
 
@@ -279,7 +280,7 @@ class SSDVGG(Net):
             kernel_size=(3, 3),
             activation=tf.nn.relu,
             padding='same',
-            kernel_initializer=tf.keras.initializers.he_normal,
+            kernel_initializer=tf.keras.initializers.he_normal(),
             name='conv5_2'
         )(conv5_1)
 
@@ -288,7 +289,7 @@ class SSDVGG(Net):
             kernel_size=(3, 3),
             activation=tf.nn.relu,
             padding='same',
-            kernel_initializer=tf.keras.initializers.he_normal,
+            kernel_initializer=tf.keras.initializers.he_normal(),
             name='conv5_3'
         )(conv5_2)
 
@@ -305,7 +306,7 @@ class SSDVGG(Net):
             dilation_rate=(6, 6),
             activation=tf.nn.relu,
             padding='same',
-            kernel_initializer=tf.keras.initializers.he_normal,
+            kernel_initializer=tf.keras.initializers.he_normal(),
             name='fc6'
         )(pool5)
 
@@ -314,7 +315,7 @@ class SSDVGG(Net):
             kernel_size=(1, 1),
             activation=tf.nn.relu,
             padding='same',
-            kernel_initializer=tf.keras.initializers.he_normal,
+            kernel_initializer=tf.keras.initializers.he_normal(),
             name='fc7'
         )(fc6)
 
@@ -323,7 +324,7 @@ class SSDVGG(Net):
             kernel_size=(1, 1),
             activation=tf.nn.relu,
             padding='same',
-            kernel_initializer=tf.keras.initializers.he_normal,
+            kernel_initializer=tf.keras.initializers.he_normal(),
             name='conv6_1'
         )(fc7)
 
@@ -333,7 +334,7 @@ class SSDVGG(Net):
             strides=(2, 2),
             activation=tf.nn.relu,
             padding='same',
-            kernel_initializer=tf.keras.initializers.he_normal,
+            kernel_initializer=tf.keras.initializers.he_normal(),
             name='conv6_2'
         )(conv6_1)
 
@@ -342,7 +343,7 @@ class SSDVGG(Net):
             kernel_size=(1, 1),
             activation=tf.nn.relu,
             padding='same',
-            kernel_initializer=tf.keras.initializers.he_normal,
+            kernel_initializer=tf.keras.initializers.he_normal(),
             name='conv7_1'
         )(conv6_2)
 
@@ -352,7 +353,7 @@ class SSDVGG(Net):
             strides=(2, 2),
             activation=tf.nn.relu,
             padding='same',
-            kernel_initializer=tf.keras.initializers.he_normal,
+            kernel_initializer=tf.keras.initializers.he_normal(),
             name='conv7_2'
         )(conv7_1)
 
@@ -361,7 +362,7 @@ class SSDVGG(Net):
             kernel_size=(1, 1),
             activation=tf.nn.relu,
             padding='same',
-            kernel_initializer=tf.keras.initializers.he_normal,
+            kernel_initializer=tf.keras.initializers.he_normal(),
             name='conv8_1'
         )(conv7_2)
 
@@ -371,7 +372,7 @@ class SSDVGG(Net):
             strides=(1, 1),
             activation=tf.nn.relu,
             padding='valid',
-            kernel_initializer=tf.keras.initializers.he_normal,
+            kernel_initializer=tf.keras.initializers.he_normal(),
             name='conv8_2'
         )(conv8_1)
 
@@ -380,7 +381,7 @@ class SSDVGG(Net):
             kernel_size=(1, 1),
             activation=tf.nn.relu,
             padding='same',
-            kernel_initializer=tf.keras.initializers.he_normal,
+            kernel_initializer=tf.keras.initializers.he_normal(),
             name='conv9_1'
         )(conv8_2)
 
@@ -390,7 +391,7 @@ class SSDVGG(Net):
             strides=(1, 1),
             activation=tf.nn.relu,
             padding='valid',
-            kernel_initializer=tf.keras.initializers.he_normal,
+            kernel_initializer=tf.keras.initializers.he_normal(),
             name='conv9_2'
         )(conv9_1)
 
@@ -407,7 +408,7 @@ class SSDVGG(Net):
             filters=n_boxes_conv4_3 * self.num_classes,
             kernel_size=(3, 3),
             padding='same',
-            kernel_initializer=tf.keras.initializers.he_normal,
+            kernel_initializer=tf.keras.initializers.he_normal(),
             name='conv4_3_norm_mbox_conf'
         )(conv4_3_norm)
 
@@ -415,7 +416,7 @@ class SSDVGG(Net):
             filters=n_boxes_fc7 * self.num_classes,
             kernel_size=(3, 3),
             padding='same',
-            kernel_initializer=tf.keras.initializers.he_normal,
+            kernel_initializer=tf.keras.initializers.he_normal(),
             name='fc7_mbox_conf'
         )(fc7)
 
@@ -423,7 +424,7 @@ class SSDVGG(Net):
             filters=n_boxes_conv6_2 * self.num_classes,
             kernel_size=(3, 3),
             padding='same',
-            kernel_initializer=tf.keras.initializers.he_normal,
+            kernel_initializer=tf.keras.initializers.he_normal(),
             name='conv6_2_mbox_conf'
         )(conv6_2)
 
@@ -431,7 +432,7 @@ class SSDVGG(Net):
             filters=n_boxes_conv7_2 * self.num_classes,
             kernel_size=(3, 3),
             padding='same',
-            kernel_initializer=tf.keras.initializers.he_normal,
+            kernel_initializer=tf.keras.initializers.he_normal(),
             name='conv7_2_mbox_conf'
         )(conv7_2)
 
@@ -439,7 +440,7 @@ class SSDVGG(Net):
             filters=n_boxes_conv8_2 * self.num_classes,
             kernel_size=(3, 3),
             padding='same',
-            kernel_initializer=tf.keras.initializers.he_normal,
+            kernel_initializer=tf.keras.initializers.he_normal(),
             name='conv8_2_mbox_conf'
         )(conv8_2)
 
@@ -447,7 +448,7 @@ class SSDVGG(Net):
             filters=n_boxes_conv9_2 * self.num_classes,
             kernel_size=(3, 3),
             padding='same',
-            kernel_initializer=tf.keras.initializers.he_normal,
+            kernel_initializer=tf.keras.initializers.he_normal(),
             name='conv9_2_mbox_conf'
         )(conv9_2)
 
@@ -457,7 +458,7 @@ class SSDVGG(Net):
             filters=n_boxes_conv4_3 * 4,
             kernel_size=(3, 3),
             padding='same',
-            kernel_initializer=tf.keras.initializers.he_normal,
+            kernel_initializer=tf.keras.initializers.he_normal(),
             name='conv4_3_norm_mbox_loc'
         )(conv4_3_norm)
 
@@ -465,7 +466,7 @@ class SSDVGG(Net):
             filters=n_boxes_fc7 * 4,
             kernel_size=(3, 3),
             padding='same',
-            kernel_initializer=tf.keras.initializers.he_normal,
+            kernel_initializer=tf.keras.initializers.he_normal(),
             name='fc7_mbox_loc'
         )(fc7)
 
@@ -473,7 +474,7 @@ class SSDVGG(Net):
             filters=n_boxes_conv6_2 * 4,
             kernel_size=(3, 3),
             padding='same',
-            kernel_initializer=tf.keras.initializers.he_normal,
+            kernel_initializer=tf.keras.initializers.he_normal(),
             name='conv6_2_mbox_loc'
         )(conv6_2)
 
@@ -481,7 +482,7 @@ class SSDVGG(Net):
             filters=n_boxes_conv7_2 * 4,
             kernel_size=(3, 3),
             padding='same',
-            kernel_initializer=tf.keras.initializers.he_normal,
+            kernel_initializer=tf.keras.initializers.he_normal(),
             name='conv7_2_mbox_loc'
         )(conv7_2)
 
@@ -489,7 +490,7 @@ class SSDVGG(Net):
             filters=n_boxes_conv8_2 * 4,
             kernel_size=(3, 3),
             padding='same',
-            kernel_initializer=tf.keras.initializers.he_normal,
+            kernel_initializer=tf.keras.initializers.he_normal(),
             name='conv8_2_mbox_loc'
         )(conv8_2)
 
@@ -497,7 +498,7 @@ class SSDVGG(Net):
             filters=n_boxes_conv9_2 * 4,
             kernel_size=(3, 3),
             padding='same',
-            kernel_initializer=tf.keras.initializers.he_normal,
+            kernel_initializer=tf.keras.initializers.he_normal(),
             name='conv9_2_mbox_loc'
         )(conv9_2)
 
@@ -680,7 +681,7 @@ class SSDVGG(Net):
             conv7_2_mbox_conf_reshape,
             conv8_2_mbox_conf_reshape,
             conv9_2_mbox_conf_reshape],
-            axis=1, name='mbox_conf')
+            axis=0, name='mbox_conf')
 
         # Output shape of `mbox_loc`: (batch, n_boxes_total, 4)
         mbox_loc = tf.concat([
@@ -690,7 +691,7 @@ class SSDVGG(Net):
             conv7_2_mbox_loc_reshape,
             conv8_2_mbox_loc_reshape,
             conv9_2_mbox_loc_reshape],
-            axis=1, name='mbox_loc')
+            axis=0, name='mbox_loc')
 
         # Output shape of `mbox_priorbox`: (batch, n_boxes_total, 8)
         mbox_priorbox = tf.concat([
@@ -700,7 +701,7 @@ class SSDVGG(Net):
             conv7_2_mbox_priorbox_reshape,
             conv8_2_mbox_priorbox_reshape,
             conv9_2_mbox_priorbox_reshape],
-            axis=1, name='mbox_priorbox')
+            axis=0, name='mbox_priorbox')
 
         # The box coordinate predictions will go into the loss function just the way they are,
         # but for the class predictions, we'll apply a softmax activation layer first
@@ -712,19 +713,20 @@ class SSDVGG(Net):
             mbox_conf_softmax,
             mbox_loc,
             mbox_priorbox],
-            axis=2, name='predictions')
+            axis=1, name='predictions')
 
         # Get the spatial dimensions (height, width) of the predictor conv layers, we need them to
         # be able to generate the default boxes for the matching process outside of the model during training.
         # Note that the original implementation performs anchor box matching inside the loss function. We don't do that.
         # Instead, we'll do it in the batch generator function.
         # The spatial dimensions are the same for the confidence and localization predictors, so we just take those of the conf layers.
-        predictor_sizes = np.asarray([conv4_3_norm_mbox_conf._keras_shape[1:3],
-                                    fc7_mbox_conf._keras_shape[1:3],
-                                    conv6_2_mbox_conf._keras_shape[1:3],
-                                    conv7_2_mbox_conf._keras_shape[1:3],
-                                    conv8_2_mbox_conf._keras_shape[1:3],
-                                    conv9_2_mbox_conf._keras_shape[1:3]])
+        predictor_sizes = np.asarray([
+            conv4_3_norm_mbox_conf.get_shape().as_list()[1:3],
+            fc7_mbox_conf.get_shape().as_list()[1:3],
+            conv6_2_mbox_conf.get_shape().as_list()[1:3],
+            conv7_2_mbox_conf.get_shape().as_list()[1:3],
+            conv8_2_mbox_conf.get_shape().as_list()[1:3],
+            conv9_2_mbox_conf.get_shape().as_list()[1:3]])
 
         res = {
             "predictions": predictions,
@@ -732,8 +734,10 @@ class SSDVGG(Net):
         }
         return res
 
-    def loss(self, predicts, labels, objects_num):
-        ssd_loss = Loss(neg_pos_ratio=self.neg_pos_ratio,
-                        n_neg_min=self.n_neg_min,
-                        alpha=self.loss_alpha)
-        return ssd_loss
+    def loss(self, y_true, y_pred):
+        if self.model_loss_obj is None:
+            self.model_loss_obj = Loss(
+                neg_pos_ratio=self.neg_pos_ratio,
+                n_neg_min=self.n_neg_min,
+                alpha=self.loss_alpha)
+        return self.model_loss_obj.compute_loss(y_true, y_pred)

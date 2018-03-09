@@ -8,6 +8,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import os
 import sys
 import time
 from datetime import datetime
@@ -20,7 +21,8 @@ from eagle.brain.solver.solver import Solver
 
 class SSDSolver(Solver):
     def __init__(self, dataset, net, common_params, solver_params):
-        super(SSDSolver, self).__init__(dataset, net, common_params, solver_params)
+        super(SSDSolver, self).__init__(
+            dataset, net, common_params, solver_params)
 
         # process params
         self.width = int(common_params['image_size'])
@@ -43,54 +45,63 @@ class SSDSolver(Solver):
         self.build_model()
 
     def _train(self):
-        """Train model
-
-        Create an optimizer and apply to all trainable variables.
-
-        Args:
-          total_loss: Total loss from net.loss()
-          global_step: Integer Variable counting the number of training steps
-          processed
-        Returns:
-          train_op: op for training
-        """
-
-        opt = tf.train.MomentumOptimizer(self.learning_rate, self.moment)
+        opt = tf.train.AdamOptimizer(
+            learning_rate=self.learning_rate,
+            beta1=self.beta_1,
+            beta2=self.beta_2,
+            epsilon=self.epsilon)
         grads = opt.compute_gradients(self.total_loss)
-
         apply_gradient_op = opt.apply_gradients(grads,
                                                 global_step=self.global_step)
-
         return apply_gradient_op
 
     def build_model(self):
         # construct graph
         self.global_step = tf.Variable(0, trainable=False)
-        self.images = tf.placeholder(tf.float32, (
-        self.batch_size, self.height, self.width, 3))
-        self.labels = tf.placeholder(tf.float32,
-                                     (self.batch_size, self.max_objects, 5))
-        self.objects_num = tf.placeholder(tf.int32, (self.batch_size))
+        self.images = tf.placeholder(
+            tf.float32,
+            shape=(self.batch_size, self.height, self.width, 3))
+        # self.predicts = self.net.inference(self.images)
+        model_spec = self.net.inference(self.images)
+        self.predicts = model_spec["predictions"]
+        predict_shape = model_spec["predictions"].get_shape().as_list()
+        boxes_num = predict_shape[0] // self.batch_size
+        encode_length = predict_shape[1]
 
-        self.predicts = self.net.inference(self.images)
-        self.total_loss, self.nilboy = self.net.loss(self.predicts, self.labels,
-                                                     self.objects_num)
+        '''
+        [32, 37, 37, 4, 8] ---> (cx, cy, w, h, variances)
+        [32, 18, 18, 6, 8]
+        [32,  9,  9, 6, 8]
+        [32,  5,  5, 6, 8]
+        [32,  3,  3, 4, 8]
+        [32,  1,  1, 4, 8]
+        ==> 37^2*4 + 18^2*6 + 9^2*6 + 5^2*6 + 3^2*6 + 1^2*4 = 8096
+        '''
+
+        self.labels = tf.placeholder(
+            tf.float32,
+            shape=(self.batch_size, boxes_num, encode_length))
+
+        self.total_loss = self.net.loss(y_true=self.labels,
+                                        y_pred=self.predicts)
 
         tf.summary.scalar('loss', self.total_loss)
         self.train_op = self._train()
 
     def solve(self):
-        saver_pretrain = tf.train.Saver(self.net.pretrained_collection)
-        saver_train = tf.train.Saver(self.net.trainable_collection)
+        saver = tf.train.Saver(max_to_keep=3)
 
         init = tf.global_variables_initializer()
-
         summary_op = tf.summary.merge_all()
 
         sess = tf.Session()
-
         sess.run(init)
-        saver_pretrain.restore(sess, self.pretrain_path)
+
+        if os.path.isdir(self.pretrain_path):
+            model_file = tf.train.latest_checkpoint(self.pretrain_path)
+            saver.restore(sess, model_file)
+        if os.path.isfile(self.pretrain_path):
+            saver.restore(sess, self.pretrain_path)
 
         summary_writer = tf.summary.FileWriter(self.train_dir, sess.graph)
 
@@ -99,11 +110,11 @@ class SSDSolver(Solver):
             np_images, np_labels, np_objects_num = self.dataset.batch()
 
             _, loss_value, nilboy = sess.run(
-                [self.train_op, self.total_loss, self.nilboy],
-                feed_dict={self.images: np_images, self.labels: np_labels,
-                           self.objects_num: np_objects_num})
-            # loss_value, nilboy = sess.run([self.total_loss, self.nilboy], feed_dict={self.images: np_images, self.labels: np_labels, self.objects_num: np_objects_num})
-
+                [self.train_op, self.total_loss],
+                feed_dict={
+                    self.images: np_images,
+                    self.labels: np_labels
+                })
 
             duration = time.time() - start_time
 
@@ -121,12 +132,13 @@ class SSDSolver(Solver):
                 sys.stdout.flush()
             if step % 1000 == 0:
                 summary_str = sess.run(summary_op,
-                                       feed_dict={self.images: np_images,
-                                                  self.labels: np_labels,
-                                                  self.objects_num: np_objects_num})
+                                       feed_dict={
+                                           self.images: np_images,
+                                           self.labels: np_labels
+                                       })
                 summary_writer.add_summary(summary_str, step)
             if step % 5000 == 0:
-                saver_train.save(sess,
-                                 self.train_dir + '/model.ckpt',
-                                 global_step=step)
+                saver.save(sess,
+                           self.train_dir + '/model.ckpt',
+                           global_step=step)
         sess.close()

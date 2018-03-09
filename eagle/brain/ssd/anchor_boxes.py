@@ -9,6 +9,7 @@ from __future__ import division
 from __future__ import print_function
 
 import numpy as np
+import tensorflow as tf
 
 import keras.backend as K
 from keras.engine.topology import Layer
@@ -107,10 +108,11 @@ class AnchorBoxes(Layer):
         wh_list = np.array(wh_list)
 
         # We need the shape of the input tensor
-        batch_size, feature_map_height, feature_map_width, feature_map_channels = x._keras_shape
+        batch_size, feature_map_height, feature_map_width, feature_map_channels = x.get_shape().as_list()
+
         # Compute the grid of box center points. They are identical for all aspect ratios
-        cell_height = self.img_height / feature_map_height
         cell_width = self.img_width / feature_map_width
+        cell_height = self.img_height / feature_map_height
         cx = np.linspace(cell_width/2, self.img_width-cell_width/2, feature_map_width)
         cy = np.linspace(cell_height/2, self.img_height-cell_height/2, feature_map_height)
         cx_grid, cy_grid = np.meshgrid(cx, cy)
@@ -129,7 +131,8 @@ class AnchorBoxes(Layer):
         boxes_tensor[:, :, :, 3] = wh_list[:, 1] # Set h
 
         # Convert `(cx, cy, w, h)` to `(xmin, xmax, ymin, ymax)`
-        boxes_tensor = convert_coordinates(boxes_tensor, start_index=0, conversion='centroids2minmax')
+        boxes_tensor = convert_coordinates(
+            boxes_tensor, start_index=0, conversion='centroids2minmax')
 
         # `normalize_coords` is enabled, normalize the coordinates to be within [0,1]
         if self.normalize_coords:
@@ -154,9 +157,9 @@ class AnchorBoxes(Layer):
         # Now prepend one dimension to `boxes_tensor` to account for the batch size and tile it along
         # The result will be a 5D tensor of shape `(batch_size, feature_map_height, feature_map_width, n_boxes, 8)`
         boxes_tensor = np.expand_dims(boxes_tensor, axis=0)
-        boxes_tensor = K.tile(
-            K.constant(boxes_tensor, dtype='float32'),
-            (K.shape(x)[0], 1, 1, 1, 1))
+        boxes_tensor = tf.tile(
+            tf.constant(boxes_tensor, dtype='float32'),
+            (x.get_shape().as_list()[0], 1, 1, 1, 1))
 
         return boxes_tensor
 

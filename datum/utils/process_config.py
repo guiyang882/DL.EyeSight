@@ -23,6 +23,7 @@ def process_config(conf_file):
     dataset_params = {}
     net_params = {}
     solver_params = {}
+    box_encoder_params = {}
 
     # configure_parser
     config = ConfigParser()
@@ -47,7 +48,14 @@ def process_config(conf_file):
             for option in config.options(section):
                 solver_params[option] = config.get(section, option)
 
-    return common_params, dataset_params, net_params, solver_params
+        # construct box_encoder_params
+        if section == 'BoxEncoder':
+            for option in config.options(section):
+                box_encoder_params[option] = config.get(section, option)
+
+    if len(box_encoder_params) == 0:
+        return common_params, dataset_params, net_params, solver_params
+    return common_params, dataset_params, net_params, solver_params, box_encoder_params
 
 if __name__ == '__main__':
     common_params, dataset_params, net_params, solver_params = process_config(
