@@ -14,8 +14,8 @@ from keras.layers import Reshape, Concatenate
 from keras.layers import Input, Lambda, Activation, Conv2D, MaxPooling2D
 
 from eagle.brain.ssd.models.net import Net
-from eagle.brain.ssd.Layer_AnchorBoxes import AnchorBoxes
-from eagle.brain.ssd.Layer_L2Normalization import L2Normalization
+from eagle.brain.ssd.anchor_boxes import AnchorBoxes
+from eagle.brain.ssd.normalization import L2Normalization
 
 
 class SSDVGG(Net):
@@ -403,7 +403,6 @@ class SSDVGG(Net):
             next_scale=self.scales[1],
             aspect_ratios=aspect_ratios_conv4_3,
             two_boxes_for_ar1=self.two_boxes_for_ar1,
-            limit_boxes=False,
             variances=self.variances,
             coords=self.coords,
             normalize_coords=self.normalize_coords,
@@ -416,7 +415,6 @@ class SSDVGG(Net):
             next_scale=self.scales[2],
             aspect_ratios=aspect_ratios_fc7,
             two_boxes_for_ar1=self.two_boxes_for_ar1,
-            limit_boxes=False,
             variances=self.variances,
             coords=self.coords,
             normalize_coords=self.normalize_coords,
@@ -429,7 +427,6 @@ class SSDVGG(Net):
             next_scale=self.scales[3],
             aspect_ratios=aspect_ratios_conv6_2,
             two_boxes_for_ar1=self.two_boxes_for_ar1,
-            limit_boxes=False,
             variances=self.variances,
             coords=self.coords,
             normalize_coords=self.normalize_coords,
@@ -441,7 +438,6 @@ class SSDVGG(Net):
             next_scale=self.scales[4],
             aspect_ratios=aspect_ratios_conv7_2,
             two_boxes_for_ar1=self.two_boxes_for_ar1,
-            limit_boxes=False,
             variances=self.variances,
             coords=self.coords,
             normalize_coords=self.normalize_coords,
@@ -454,7 +450,6 @@ class SSDVGG(Net):
             next_scale=self.scales[5],
             aspect_ratios=aspect_ratios_conv8_2,
             two_boxes_for_ar1=self.two_boxes_for_ar1,
-            limit_boxes=False,
             variances=self.variances,
             coords=self.coords,
             normalize_coords=self.normalize_coords,
@@ -467,7 +462,6 @@ class SSDVGG(Net):
             next_scale=self.scales[6],
             aspect_ratios=aspect_ratios_conv9_2,
             two_boxes_for_ar1=self.two_boxes_for_ar1,
-            limit_boxes=False,
             variances=self.variances,
             coords=self.coords,
             normalize_coords=self.normalize_coords,

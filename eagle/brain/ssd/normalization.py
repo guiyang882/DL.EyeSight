@@ -11,8 +11,8 @@ from __future__ import print_function
 import numpy as np
 
 import keras.backend as K
-from keras.engine.topology import InputSpec
 from keras.engine.topology import Layer
+from keras.engine.topology import InputSpec
 
 
 class L2Normalization(Layer):

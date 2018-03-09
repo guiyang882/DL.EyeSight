@@ -17,7 +17,7 @@ from keras.models import Model
 from keras.layers import Input, Activation, Conv2D, Lambda, Reshape, Concatenate
 from keras.layers import MaxPooling2D, BatchNormalization
 
-from eagle.brain.ssd.Layer_AnchorBoxes import AnchorBoxes
+from eagle.brain.ssd.anchor_boxes import AnchorBoxes
 from eagle.brain.ssd.models.components import _fire, _fire_with_bn, _conv2D_with_bn
 
 

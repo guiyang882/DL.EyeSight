@@ -20,8 +20,8 @@ from keras.optimizers import Adam
 from matplotlib import pyplot as plt
 
 from datum.models.ssd.box_encoder import SSDBoxEncoder
-from eagle.brain.ssd.Layer_AnchorBoxes import AnchorBoxes
-from eagle.brain.ssd.Layer_L2Normalization import L2Normalization
+from eagle.brain.ssd.anchor_boxes import AnchorBoxes
+from eagle.brain.ssd.normalization import L2Normalization
 from eagle.brain.ssd.SSDLoss import SSDLoss
 from eagle.brain.ssd.box_encode_decode_utils import decode_y2
 from eagle.brain.ssd.models.squeezenet_300 import \
