@@ -13,13 +13,14 @@ import tensorflow as tf
 
 class Net(object):
     """Base Net class
-  """
+    """
 
     def __init__(self, common_params, net_params):
-        """
-        common_params: a params dict
-        net_params: a params dict
-        """
+        if not isinstance(common_params, dict):
+            raise TypeError("common_params must be dict")
+        if not isinstance(net_params, dict):
+            raise TypeError("net_params must be dict")
+
         # pretrained variable collection
         self.pretrained_collection = []
         # trainable variable collection
@@ -67,7 +68,7 @@ class Net(object):
           wd: add L2Loss weight decay multiplied by this float. If None, weight
           decay is not added for this Variable.
 
-       Returns:
+        Returns:
           Variable Tensor
         """
         var = self._variable_on_cpu(name, shape,

@@ -19,11 +19,12 @@ class YoloNet(Net):
         super(YoloNet, self).__init__(common_params, net_params)
         # process params
         self.image_size = int(common_params['image_size'])
-        self.num_classes = int(common_params['num_classes'])
-        self.cell_size = int(net_params['cell_size'])
-        self.boxes_per_cell = int(net_params['boxes_per_cell'])
         self.batch_size = int(common_params['batch_size'])
+        self.num_classes = int(common_params['num_classes'])
+
+        self.cell_size = int(net_params['cell_size'])
         self.weight_decay = float(net_params['weight_decay'])
+        self.boxes_per_cell = int(net_params['boxes_per_cell'])
 
         if not test:
             self.object_scale = float(net_params['object_scale'])
