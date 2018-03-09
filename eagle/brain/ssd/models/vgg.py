@@ -13,6 +13,7 @@ from keras.models import Model
 from keras.layers import Reshape, Concatenate
 from keras.layers import Input, Lambda, Activation, Conv2D, MaxPooling2D
 
+from eagle.brain.ssd.loss import Loss
 from eagle.brain.ssd.models.net import Net
 from eagle.brain.ssd.anchor_boxes import AnchorBoxes
 from eagle.brain.ssd.normalization import L2Normalization
@@ -30,6 +31,9 @@ class SSDVGG(Net):
         self.num_classes = int(common_params['num_classes']) + 1
 
         ## 解析net_params
+        self.n_neg_min = int(net_params["n_neg_min"])
+        self.loss_alpha = float(net_params["loss_alpha"])
+        self.neg_pos_ratio = int(net_params["neg_pos_ratio"])
 
         ## 解析box_encoder_params
         # 处理predictor_sizes
@@ -592,7 +596,7 @@ class SSDVGG(Net):
         # Note that the original implementation performs anchor box matching inside the loss function. We don't do that.
         # Instead, we'll do it in the batch generator function.
         # The spatial dimensions are the same for the confidence and localization predictors, so we just take those of the conf layers.
-        predictor_sizes = np.array([conv4_3_norm_mbox_conf._keras_shape[1:3],
+        predictor_sizes = np.asarray([conv4_3_norm_mbox_conf._keras_shape[1:3],
                                     fc7_mbox_conf._keras_shape[1:3],
                                     conv6_2_mbox_conf._keras_shape[1:3],
                                     conv7_2_mbox_conf._keras_shape[1:3],
@@ -600,3 +604,9 @@ class SSDVGG(Net):
                                     conv9_2_mbox_conf._keras_shape[1:3]])
 
         return model, predictor_sizes
+
+    def loss(self, predicts, labels, objects_num):
+        ssd_loss = Loss(neg_pos_ratio=self.neg_pos_ratio,
+                        n_neg_min=self.n_neg_min,
+                        alpha=self.loss_alpha)
+        return ssd_loss

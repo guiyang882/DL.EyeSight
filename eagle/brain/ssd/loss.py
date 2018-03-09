@@ -11,7 +11,7 @@ from __future__ import print_function
 import tensorflow as tf
 
 
-class SSDLoss:
+class Loss:
 
     def __init__(self, neg_pos_ratio=3, n_neg_min=0, alpha=1.0):
         """

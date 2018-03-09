@@ -19,23 +19,24 @@ from eagle.brain.solver.solver import Solver
 
 
 class YoloSolver(Solver):
-    """Yolo Solver
-    """
-
     def __init__(self, dataset, net, common_params, solver_params):
+        super(YoloSolver, self).__init__(dataset, net, common_params, solver_params)
+
         # process params
+        self.width = int(common_params['image_size'])
+        self.height = int(common_params['image_size'])
+        self.batch_size = int(common_params['batch_size'])
+        self.max_objects = int(common_params['max_objects_per_image'])
+
         self.moment = float(solver_params['moment'])
         self.learning_rate = float(solver_params['lr'])
-        self.batch_size = int(common_params['batch_size'])
-        self.height = int(common_params['image_size'])
-        self.width = int(common_params['image_size'])
-        self.max_objects = int(common_params['max_objects_per_image'])
-        self.pretrain_path = str(solver_params['pretrain_model_path'])
         self.train_dir = str(solver_params['train_dir'])
         self.max_iterators = int(solver_params['max_iterators'])
-        #
+        self.pretrain_path = str(solver_params['pretrain_model_path'])
+
         self.dataset = dataset
         self.net = net
+
         # construct graph
         self.construct_graph()
 
@@ -106,25 +107,24 @@ class YoloSolver(Solver):
 
             assert not np.isnan(loss_value), 'Model diverged with loss = NaN'
 
-            if step % 1 == 0:
+            if step % 10 == 0:
                 num_examples_per_step = self.dataset.batch_size
                 examples_per_sec = num_examples_per_step / duration
                 sec_per_batch = float(duration)
 
-                format_str = (
-                '%s: step %d, loss = %.2f (%.1f examples/sec; %.3f '
-                'sec/batch)')
+                format_str = ('%s: step %d, loss = %.2f '
+                              '(%.1f examples/sec; %.3f sec/batch)')
                 print(format_str % (datetime.now(), step, loss_value,
                                     examples_per_sec, sec_per_batch))
-
                 sys.stdout.flush()
-            if step % 1 == 0:
+            if step % 1000 == 0:
                 summary_str = sess.run(summary_op,
                                        feed_dict={self.images: np_images,
                                                   self.labels: np_labels,
                                                   self.objects_num: np_objects_num})
                 summary_writer.add_summary(summary_str, step)
             if step % 5000 == 0:
-                saver_train.save(sess, self.train_dir + '/model.ckpt',
-                            global_step=step)
+                saver_train.save(sess,
+                                 self.train_dir + '/model.ckpt',
+                                 global_step=step)
         sess.close()
