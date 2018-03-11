@@ -34,9 +34,28 @@ Opencv: 3.2.0 version for python
 - [x] 对数据集的处理结构的统一接口
 - [x] 编写对模块的测试文件
 
-## 使用说明
-
 ## 实验结果
+- YOLOv1模型在Pascal VOC数据集上的表现
+<table border="0" align="center" cellpadding="0" cellspacing="0">
+  <tr>
+    <td valign="top">
+        <div style="margin-left:100px;">
+            <img src="https://github.com/liuguiyangnwpu/MassImageRetrieval/blob/master/experiment/showImages/cluster_0.5_0.5.png" width="300" height="300" title="Cluster Model 0.5+0.5"/>
+        </div>
+    </td>
+    <td valign="top">
+        <div style="margin-left:100px;">
+            <img src="https://github.com/liuguiyangnwpu/MassImageRetrieval/blob/master/experiment/showImages/cluster_1.0_1.0.png" width="300" height="300" title="Cluster Model 1.0+1.0"/>
+        </div>
+    </td>
+    <td valign="top">
+        <div style="margin-left:100px;">
+            <img src="https://github.com/liuguiyangnwpu/MassImageRetrieval/blob/master/experiment/showImages/cluster_1.0_1.0.png" width="300" height="300" title="Cluster Model 1.0+1.0"/>
+        </div>
+    </td>
+  </tr>
+</table>
+
 
 ## 联系我
 * New Issues
