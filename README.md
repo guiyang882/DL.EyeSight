@@ -40,17 +40,17 @@ Opencv: 3.2.0 version for python
   <tr>
     <td valign="top">
         <div style="margin-left:100px;">
-            <img src="https://github.com/liuguiyangnwpu/MassImageRetrieval/blob/master/experiment/showImages/cluster_0.5_0.5.png" width="300" height="300" title="Cluster Model 0.5+0.5"/>
+            <img src="https://github.com/liuguiyangnwpu/DL.EyeSight/blob/master/results/test_res_image/loss1.png" width="300" height="120"/>
         </div>
     </td>
     <td valign="top">
         <div style="margin-left:100px;">
-            <img src="https://github.com/liuguiyangnwpu/MassImageRetrieval/blob/master/experiment/showImages/cluster_1.0_1.0.png" width="300" height="300" title="Cluster Model 1.0+1.0"/>
+            <img src="https://github.com/liuguiyangnwpu/DL.EyeSight/blob/master/results/test_res_image/loss2.png" width="300" height="120"/>
         </div>
     </td>
     <td valign="top">
         <div style="margin-left:100px;">
-            <img src="https://github.com/liuguiyangnwpu/MassImageRetrieval/blob/master/experiment/showImages/cluster_1.0_1.0.png" width="300" height="300" title="Cluster Model 1.0+1.0"/>
+            <img src="https://github.com/liuguiyangnwpu/DL.EyeSight/blob/master/results/test_res_image/loss3.png" width="300" height="120"/>
         </div>
     </td>
   </tr>
