@@ -100,7 +100,13 @@ class SSDDataSet(DataSet):
             if out is not None:
                 # 在归整完数据之后，要对object_label中使用BoxEncoder的调用
                 image, gt_labels = out[:]
-                y_true_encoded = self.box_encoder.encode_y(gt_labels)
+                # gt_labels from
+                # [xmin, ymin, xmax, ymax] --> [xmin, xmax, ymin, ymax]
+                # print(gt_labels)
+                for cell in gt_labels:
+                    cell[1], cell[2] = cell[2], cell[1]
+                # print(gt_labels)
+                y_true_encoded = self.box_encoder.encode_y_sample(gt_labels)
                 self.image_label_queue.put([image, y_true_encoded])
 
     def record_process(self, record):
@@ -140,7 +146,7 @@ class SSDDataSet(DataSet):
         elif real_rate > target_rate + self.upper_resize_rate:
             # 当前的图像不满足直接resize的比例，需要按照最短边进行一定比例进行裁减
             h0 = h
-            w0 = np.ceil(h0 * (target_rate + self.upper_resize_rate))
+            w0 = np.ceil(h0 * (target_rate + self.upper_resize_rate)).astype(np.int32)
             # we should crop from (0, 0)
             image = image[:, 0:w0]
             image = cv2.resize(image, (self.height, self.width))
@@ -177,7 +183,7 @@ class SSDDataSet(DataSet):
                 return None
         elif real_rate < target_rate - self.lower_resize_rate:
             w0 = w
-            h0 = np.ceil(w0 / (target_rate - self.lower_resize_rate))
+            h0 = np.ceil(w0 / (target_rate - self.lower_resize_rate)).astype(np.int32)
             # we should crop from (0, 0)
             image = image[0:h0, :]
             image = cv2.resize(image, (self.height, self.width))
@@ -229,5 +235,6 @@ class SSDDataSet(DataSet):
             labels.append(label)
         images = np.asarray(images, dtype=np.float32)
         images = images / 255 * 2 - 1
+        labels = np.concatenate(labels, axis=0)
         # labels = np.asarray(labels, dtype=np.float32)
         return images, labels

@@ -54,14 +54,13 @@ class BoxEncoder:
             elif c == ']':
                 if len(tmp):
                     aspect_ratios_per_layer.append(
-                        list(map(float, tmp.strip().split(","))))
+                        list(map(float, tmp.strip(',').split(","))))
                 seq_stack.pop()
                 tmp = ""
             elif c.isdigit() or c == '.' or c == ',':
                 tmp += c
             else:
                 pass
-
         self.aspect_ratios_per_layer = aspect_ratios_per_layer
 
         two_boxes_for_ar1 = True if box_encoder_params["two_boxes_for_ar1"] \
@@ -123,19 +122,24 @@ class BoxEncoder:
     def encode_y(self, ground_truth_labels):
         '''
         Convert ground truth bounding box data into a suitable Others to train an SSD model.
-        For each image in the batch, each ground truth bounding box belonging to that image will be compared against each
-        anchor box in a template with respect to their jaccard similarity. If the jaccard similarity is greater than
-        or equal to the set threshold, the boxes will be matched, meaning that the ground truth box coordinates and class
-        will be written to the the specific position of the matched anchor box in the template.
-        The class for all anchor boxes for which there was no match with any ground truth box will be set to the
-        background class, except for those anchor boxes whose IoU similarity with any ground truth box is higher than
-        the set negative threshold (see the `neg_iou_threshold` argument in `__init__()`).
+        For each image in the batch, each ground truth bounding box belonging to that
+        image will be compared against each anchor box in a template with
+        respect to their jaccard similarity. If the jaccard similarity is greater than
+        or equal to the set threshold, the boxes will be matched, meaning that the ground truth box
+        coordinates and class will be written to the the specific position of the matched anchor box
+        in the template. The class for all anchor boxes for which there was
+        no match with any ground truth box will be set to the background
+        class, except for those anchor boxes whose IoU similarity with any
+        ground truth box is higher than the set negative threshold (see the
+        `neg_iou_threshold` argument in `__init__()`).
         Arguments:
-            ground_truth_labels (list): A python list of length `batch_size` that contains one 2D Numpy array
-                for each batch image. Each such array has `k` rows for the `k` ground truth bounding boxes belonging
-                to the respective image, and the data for each ground truth bounding box has the Others
-                `(class_id, xmin, xmax, ymin, ymax)`, and `class_id` must be an integer greater than 0 for all boxes
-                as class_id 0 is reserved for the background class.
+            ground_truth_labels (list): A python list of length `batch_size`
+                that contains one 2D Numpy array for each batch image. Each such
+                array has `k` rows for the `k` ground truth bounding boxes
+                belonging to the respective image, and the data for each ground
+                truth bounding box has the Others `(xmin, xmax, ymin, ymax,
+                class_id)`, and `class_id` must be an integer greater than 0 for
+                all boxes as class_id 0 is reserved for the background class.
         Returns:
             `y_encoded`, a 3D numpy array of shape `(batch_size, #boxes, #classes + 4 + 4 + 4)` that serves as the
             ground truth label tensor for training, where `#boxes` is the total number of boxes predicted by the
@@ -143,7 +147,6 @@ class BoxEncoder:
             the last axis are the box coordinates, the next four elements after that are just dummy elements, and
             the last four elements are the variances.
         '''
-
         # 1: Generate the template for y_encoded
         y_encode_template = self.generate_encode_template(batch_size=len(ground_truth_labels))
         # We'll write the ground truth box data to this array
@@ -157,29 +160,29 @@ class BoxEncoder:
         # An identity matrix that we'll use as one-hot class vectors
         class_vector = np.eye(self.num_classes)
 
-        for i in range(y_encode_template.shape[0]):  # For each batch item...
-            # 1 for all anchor boxes that are not yet matched to a ground truth
-            # box, 0 otherwise
+        # For each batch item...
+        for i in range(y_encode_template.shape[0]):
+            # 1 for all anchor boxes that are not yet matched to a ground truth box, 0 otherwise
             available_boxes = np.ones((y_encode_template.shape[1]))
             # 1 for all negative boxes, 0 otherwise
             negative_boxes = np.ones((y_encode_template.shape[1]))
             # For each ground truth box belonging to the current batch item...
             for true_box in ground_truth_labels[i]:
                 true_box = true_box.astype(np.float)
-                if abs(true_box[2] - true_box[1] < 0.001) or abs(true_box[4] - true_box[3] < 0.001):
+                if abs(true_box[1] - true_box[0] < 0.001) or abs(true_box[3] - true_box[2] < 0.001):
                     continue  # Protect ourselves against bad ground truth data: boxes with width or height equal to zero
                 if self.normalize_coords:
                     # Normalize xmin and xmax to be within [0,1]
-                    true_box[1:3] /= self.image_width
+                    true_box[0:2] /= self.image_width
                     # Normalize ymin and ymax to be within [0,1]
-                    true_box[3:5] /= self.image_height
+                    true_box[2:4] /= self.image_height
                 if self.coords == 'centroids':
                     true_box = convert_coordinates(
-                        true_box, start_index=1, conversion='minmax2centroids')
+                        true_box, start_index=0, conversion='minmax2centroids')
                 # The iou similarities for all anchor boxes
                 similarities = iou(
                     y_encode_template[i, :, -12:-8],
-                    true_box[1:],
+                    true_box[:-1],
                     coords=self.coords)
                 # If a negative box gets an IoU match >=
                 # `self.neg_iou_threshold`, it's no longer a valid negative box
@@ -199,7 +202,7 @@ class BoxEncoder:
                     # assigned anchor box positions. Remember that the last
                     # four elements of `y_encoded` are just dummy entries.
                     y_encoded[i, assign_indices, :-8] = np.concatenate(
-                        (class_vector[int(true_box[0])], true_box[1:]), axis=0)
+                        (class_vector[int(true_box[4])], true_box[0:4]), axis=0)
                     # Make the assigned anchor boxes unavailable for the next
                     # ground truth box
                     available_boxes[assign_indices] = 0
@@ -210,7 +213,7 @@ class BoxEncoder:
                     # Write the ground truth box coordinates and class to the
                     # best match anchor box position
                     y_encoded[i, best_match_index, :-8] = np.concatenate(
-                        (class_vector[int(true_box[0])], true_box[1:]), axis=0)
+                        (class_vector[int(true_box[4])], true_box[0:4]), axis=0)
                     # Make the assigned anchor box unavailable for the next
                     # ground truth box
                     available_boxes[best_match_index] = 0
@@ -393,3 +396,104 @@ class BoxEncoder:
         boxes_tensor = np.reshape(boxes_tensor, (batch_size, -1, 4))
 
         return boxes_tensor
+
+    def encode_y_sample(self, ground_truth_labels):
+        """仅仅包含一副图像中的目标的位置信息"""
+        # 1: Generate the template for y_encoded
+        y_encode_template = self.generate_encode_template(batch_size=1)
+        # We'll write the ground truth box data to this array
+        y_encoded = np.copy(y_encode_template)
+
+        # 2: Match the boxes from `ground_truth_labels` to the anchor boxes in `y_encode_template`
+        #    and for each matched box record the ground truth coordinates in `y_encoded`.
+        # Every time there is no match for a anchor box, record `class_id` 0 in
+        # `y_encoded` for that anchor box.
+
+        # An identity matrix that we'll use as one-hot class vectors
+        class_vector = np.eye(self.num_classes)
+
+        # For each batch item...
+        for i in range(y_encode_template.shape[0]):
+            # 1 for all anchor boxes that are not yet matched to a ground truth box, 0 otherwise
+            available_boxes = np.ones((y_encode_template.shape[1]))
+            # 1 for all negative boxes, 0 otherwise
+            negative_boxes = np.ones((y_encode_template.shape[1]))
+            # For each ground truth box belonging to the current batch item...
+            for true_box in ground_truth_labels:
+                if isinstance(true_box, list):
+                    true_box = np.asarray(true_box, np.float32)
+                else:
+                    true_box = true_box.astype(np.float32)
+                # Protect ourselves against bad ground truth data: boxes with width or height equal to zero
+                if abs(true_box[1] - true_box[0] < 0.001) or abs(true_box[3] - true_box[2] < 0.001):
+                    continue
+                if self.normalize_coords:
+                    # Normalize xmin and xmax to be within [0,1]
+                    true_box[0:2] /= self.image_width
+                    # Normalize ymin and ymax to be within [0,1]
+                    true_box[2:4] /= self.image_height
+                if self.coords == 'centroids':
+                    true_box = convert_coordinates(
+                        true_box, start_index=0, conversion='minmax2centroids')
+                # The iou similarities for all anchor boxes
+                similarities = iou(
+                    y_encode_template[i, :, -12:-8],
+                    true_box[:-1],
+                    coords=self.coords)
+                # If a negative box gets an IoU match >=
+                # `self.neg_iou_threshold`, it's no longer a valid negative box
+                negative_boxes[similarities >= self.neg_iou_threshold] = 0
+                # Filter out anchor boxes which aren't available anymore (i.e.
+                # already matched to a different ground truth box)
+                similarities *= available_boxes
+                available_and_thresh_met = np.copy(similarities)
+                # Filter out anchor boxes which don't meet the iou threshold
+                available_and_thresh_met[
+                    available_and_thresh_met < self.pos_iou_threshold] = 0
+                # Get the indices of the left-over anchor boxes to which we
+                # want to assign this ground truth box
+                assign_indices = np.nonzero(available_and_thresh_met)[0]
+                if len(assign_indices) > 0:  # If we have any matches
+                    # Write the ground truth box coordinates and class to all
+                    # assigned anchor box positions. Remember that the last
+                    # four elements of `y_encoded` are just dummy entries.
+                    y_encoded[i, assign_indices, :-8] = np.concatenate(
+                        (class_vector[int(true_box[4])], true_box[0:4]), axis=0)
+                    # Make the assigned anchor boxes unavailable for the next
+                    # ground truth box
+                    available_boxes[assign_indices] = 0
+                else:  # If we don't have any matches
+                    # Get the index of the best iou match out of all available
+                    # boxes
+                    best_match_index = np.argmax(similarities)
+                    # Write the ground truth box coordinates and class to the
+                    # best match anchor box position
+                    y_encoded[i, best_match_index, :-8] = np.concatenate(
+                        (class_vector[int(true_box[4])], true_box[0:4]), axis=0)
+                    # Make the assigned anchor box unavailable for the next
+                    # ground truth box
+                    available_boxes[best_match_index] = 0
+                    # The assigned anchor box is no longer a negative box
+                    negative_boxes[best_match_index] = 0
+            # Set the classes of all remaining available anchor boxes to class
+            # zero
+            background_class_indices = np.nonzero(negative_boxes)[0]
+            y_encoded[i, background_class_indices, 0] = 1
+
+        # 3: Convert absolute box coordinates to offsets from the anchor boxes
+        # and normalize them
+        if self.coords == 'centroids':
+            # cx(gt) - cx(anchor), cy(gt) - cy(anchor)
+            y_encoded[:, :, [-12, -11]] -= y_encode_template[:, :, [-12, -11]]
+            # (cx(gt) - cx(anchor)) / w(anchor) / cx_variance, (cy(gt) - cy(anchor)) / h(anchor) / cy_variance
+            y_encoded[:, :, [-12, -11]] /= (
+                y_encode_template[:, :, [-10, -9]] *
+                y_encode_template[:, :, [-4, -3]])
+            # w(gt) / w(anchor), h(gt) / h(anchor)
+            y_encoded[:, :, [-10, -9]] /= y_encode_template[:, :, [-10, -9]]
+            # ln(w(gt) / w(anchor)) / w_variance, ln(h(gt) / h(anchor)) /
+            # h_variance (ln == natural logarithm)
+            y_encoded[:, :, [-10, -9]] = np.log(
+                y_encoded[:, :, [-10, -9]]) / y_encode_template[:, :, [-2, -1]]
+
+        return y_encoded
