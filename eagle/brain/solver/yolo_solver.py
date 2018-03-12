@@ -79,7 +79,7 @@ class YoloSolver(Solver):
 
     def solve(self):
         saver_pretrain = tf.train.Saver(self.net.pretrained_collection)
-        saver_train = tf.train.Saver(self.net.trainable_collection)
+        saver_train = tf.train.Saver(self.net.trainable_collection, max_to_keep=3)
 
         init = tf.global_variables_initializer()
 

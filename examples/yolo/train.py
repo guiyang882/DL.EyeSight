@@ -10,8 +10,8 @@ from __future__ import print_function
 
 from optparse import OptionParser
 
-from datum.models.yolo.yolo_dataset import YoloDataSet
 from datum.utils.process_config import process_config
+from datum.models.yolo.yolo_dataset import YoloDataSet
 from eagle.brain.solver.yolo_solver import YoloSolver
 from eagle.brain.yolo.yolo_tiny_net import YoloTinyNet
 

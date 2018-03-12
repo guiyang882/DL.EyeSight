@@ -56,12 +56,10 @@ class SSDSolver(Solver):
         return apply_gradient_op
 
     def build_model(self):
-        # construct graph
         self.global_step = tf.Variable(0, trainable=False)
         self.images = tf.placeholder(
             tf.float32,
             shape=(self.batch_size, self.height, self.width, 3))
-        # self.predicts = self.net.inference(self.images)
         model_spec = self.net.inference(self.images)
         self.predicts = model_spec["predictions"]
         predict_shape = model_spec["predictions"].get_shape().as_list()
@@ -69,6 +67,7 @@ class SSDSolver(Solver):
         encode_length = predict_shape[2]
 
         '''
+        Input Image (300, 300, 3):
         [32, 37, 37, 4, 8] ---> (cx, cy, w, h, variances)
         [32, 18, 18, 6, 8]
         [32,  9,  9, 6, 8]
@@ -107,7 +106,7 @@ class SSDSolver(Solver):
 
         for step in range(self.max_iterators):
             start_time = time.time()
-            np_images, np_labels, np_objects_num = self.dataset.batch()
+            np_images, np_labels = self.dataset.batch()
 
             _, loss_value = sess.run(
                 [self.train_op, self.total_loss],
@@ -137,7 +136,7 @@ class SSDSolver(Solver):
                                            self.labels: np_labels
                                        })
                 summary_writer.add_summary(summary_str, step)
-            if step % 5000 == 0:
+            if step % 2000 == 0:
                 saver.save(sess,
                            self.train_dir + '/model.ckpt',
                            global_step=step)
