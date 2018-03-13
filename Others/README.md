@@ -3,6 +3,7 @@
 
 ### 数据集列表
 - [x] VOC数据集
+- [x] VEDIA数据集
 - [ ] KITTI数据集
 - [ ] NWPU-VHR
 - [ ] DOTA(A Large-scale Dataset for Object Detection in Aerial Images)

@@ -96,11 +96,7 @@ class SSDSolver(Solver):
         sess = tf.Session()
         sess.run(init)
 
-        if os.path.isdir(self.pretrain_path):
-            model_file = tf.train.latest_checkpoint(self.pretrain_path)
-            saver.restore(sess, model_file)
-        if os.path.isfile(self.pretrain_path):
-            saver.restore(sess, self.pretrain_path)
+        saver.restore(sess, self.pretrain_path)
 
         summary_writer = tf.summary.FileWriter(self.train_dir, sess.graph)
 
@@ -138,6 +134,5 @@ class SSDSolver(Solver):
                 summary_writer.add_summary(summary_str, step)
             if step % 2000 == 0:
                 saver.save(sess,
-                           self.train_dir + '/model.ckpt',
-                           global_step=step)
+                           self.train_dir + '/model.ckpt')
         sess.close()
