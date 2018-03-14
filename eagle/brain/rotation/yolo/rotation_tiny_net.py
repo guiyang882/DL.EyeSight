@@ -168,6 +168,7 @@ class RotationTinyNet(Net):
         conv = tf.transpose(conv, (0, 3, 1, 2))
 
         # Fully connected layer
+        conv = tf.reshape(conv, shape=(self.batch_size, -1))
         fc1 = tf.contrib.layers.fully_connected(
             inputs=conv,
             num_outputs=256,
