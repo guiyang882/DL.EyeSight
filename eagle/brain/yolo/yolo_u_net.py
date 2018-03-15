@@ -475,4 +475,3 @@ class YOLOUNet(Net):
         square2 = (boxes2[2] - boxes2[0]) * (boxes2[3] - boxes2[1])
 
         return inter_square / (square1 + square2 - inter_square + 1e-6)
-    
