@@ -195,4 +195,4 @@ class Loss:
         # over the batch size, we'll have to multiply by it.
         total_loss *= tf.to_float(batch_size)
 
-        return tf.reduce_sum(total_loss, axis=-1)
+        return tf.reduce_mean(total_loss, axis=-1)

@@ -14,9 +14,9 @@ import tensorflow as tf
 from eagle.brain.yolo.net import Net
 
 
-class YOLOUNet(Net):
+class YoloUNet(Net):
     def __init__(self, common_params, net_params, test=False):
-        super(YOLOUNet, self).__init__(common_params, net_params)
+        super(YoloUNet, self).__init__(common_params, net_params)
         # process params
         self.image_size = int(common_params['image_size'])
         self.num_classes = int(common_params['num_classes'])
@@ -241,23 +241,24 @@ class YOLOUNet(Net):
 
     def loss(self, predicts, labels, objects_num):
         """Add Loss to all the trainable variables
-
-                Args:
-                  predicts: 4-D tensor [batch_size, cell_size, cell_size, 5 * boxes_per_cell]
-                  ===> (num_classes, boxes_per_cell, 4 * boxes_per_cell)
-                  labels  : 3-D tensor of [batch_size, max_objects, 5]
-                  objects_num: 1-D tensor [batch_size]
-                """
+        Args:
+          predicts: 4-D tensor [batch_size, cell_size, cell_size, 5 * boxes_per_cell]
+          ===> (num_classes, boxes_per_cell, 4 * boxes_per_cell)
+          labels  : 3-D tensor of [batch_size, max_objects, 5]
+          objects_num: 1-D tensor [batch_size]
+        """
         class_loss = tf.constant(0, tf.float32)
         object_loss = tf.constant(0, tf.float32)
         noobject_loss = tf.constant(0, tf.float32)
         coord_loss = tf.constant(0, tf.float32)
         loss = [0, 0, 0, 0]
+        cell_size = predicts.get_shape().as_list()[1]
+
         for i in range(self.batch_size):
             predict = predicts[i, :, :, :]
             label = labels[i, :, :]
             object_num = objects_num[i]
-            nilboy = tf.ones([self.cell_size, self.cell_size, 2])
+            nilboy = tf.ones([cell_size, cell_size, 2])
             tuple_results = tf.while_loop(
                 self.loss_cond,
                 self.loss_body,
@@ -266,6 +267,7 @@ class YOLOUNet(Net):
                  [class_loss, object_loss, noobject_loss, coord_loss],
                  predict,
                  label,
+                 cell_size,
                  nilboy])
             for j in range(4):
                 loss[j] = loss[j] + tuple_results[2][j]
@@ -285,10 +287,12 @@ class YOLOUNet(Net):
 
         return tf.add_n(tf.get_collection('losses'), name='total_loss'), nilboy
 
-    def loss_cond(self, num, object_num, loss, predict, label, nilboy):
+    def loss_cond(self, num, object_num, loss, predict, labels,
+                  cell_size, nilboy):
         return num < object_num
 
-    def loss_body(self, num, object_num, loss, predict, labels, nilboy):
+    def loss_body(self, num, object_num, loss, predict, labels,
+                  cell_size, nilboy):
         """
         calculate loss
         Args:
@@ -298,12 +302,14 @@ class YOLOUNet(Net):
         label = labels[num:num + 1, :]
         label = tf.reshape(label, [-1])
 
-        # calculate objects  tensor [CELL_SIZE, CELL_SIZE]
-        min_x = (label[0] - label[2] / 2) / (self.image_size / self.cell_size)
-        max_x = (label[0] + label[2] / 2) / (self.image_size / self.cell_size)
+        cell_size = predict.get_shape().as_list()[0]
 
-        min_y = (label[1] - label[3] / 2) / (self.image_size / self.cell_size)
-        max_y = (label[1] + label[3] / 2) / (self.image_size / self.cell_size)
+        # calculate objects  tensor [CELL_SIZE, CELL_SIZE]
+        min_x = (label[0] - label[2] / 2) / (self.image_size / cell_size)
+        max_x = (label[0] + label[2] / 2) / (self.image_size / cell_size)
+
+        min_y = (label[1] - label[3] / 2) / (self.image_size / cell_size)
+        max_y = (label[1] + label[3] / 2) / (self.image_size / cell_size)
 
         min_x = tf.floor(min_x)
         min_y = tf.floor(min_y)
@@ -315,24 +321,23 @@ class YOLOUNet(Net):
         objects = tf.ones(temp, tf.float32)
 
         temp = tf.cast(tf.stack(
-            [min_y, self.cell_size - max_y, min_x, self.cell_size - max_x]),
-                       tf.int32)
+            [min_y, cell_size - max_y, min_x, cell_size - max_x]), tf.int32)
         temp = tf.reshape(temp, (2, 2))
         objects = tf.pad(objects, temp, "CONSTANT")
 
         # calculate objects  tensor [CELL_SIZE, CELL_SIZE]
         # calculate responsible tensor [CELL_SIZE, CELL_SIZE]
-        center_x = label[0] / (self.image_size / self.cell_size)
+        center_x = label[0] / (self.image_size / cell_size)
         center_x = tf.floor(center_x)
 
-        center_y = label[1] / (self.image_size / self.cell_size)
+        center_y = label[1] / (self.image_size / cell_size)
         center_y = tf.floor(center_y)
 
         response = tf.ones([1, 1], tf.float32)
 
         temp = tf.cast(tf.stack(
-            [center_y, self.cell_size - center_y - 1, center_x,
-             self.cell_size - center_x - 1]), tf.int32)
+            [center_y, cell_size - center_y - 1, center_x,
+             cell_size - center_x - 1]), tf.int32)
         temp = tf.reshape(temp, (2, 2))
         response = tf.pad(response, temp, "CONSTANT")
         # objects = response
@@ -341,22 +346,23 @@ class YOLOUNet(Net):
         predict_boxes = predict[:, :, self.num_classes + self.boxes_per_cell:]
 
         predict_boxes = tf.reshape(predict_boxes,
-                                   [self.cell_size, self.cell_size,
+                                   [cell_size, cell_size,
                                     self.boxes_per_cell, 4])
 
-        predict_boxes = predict_boxes * [self.image_size / self.cell_size,
-                                         self.image_size / self.cell_size,
-                                         self.image_size, self.image_size]
+        predict_boxes = predict_boxes * [self.image_size / cell_size,
+                                         self.image_size / cell_size,
+                                         self.image_size,
+                                         self.image_size]
 
-        base_boxes = np.zeros([self.cell_size, self.cell_size, 4])
+        base_boxes = np.zeros([cell_size, cell_size, 4])
 
-        for y in range(self.cell_size):
-            for x in range(self.cell_size):
-                base_boxes[y, x, :] = [self.image_size / self.cell_size * x,
-                                       self.image_size / self.cell_size * y,
+        for y in range(cell_size):
+            for x in range(cell_size):
+                base_boxes[y, x, :] = [self.image_size / cell_size * x,
+                                       self.image_size / cell_size * y,
                                        0, 0]
         base_boxes = np.tile(
-            np.resize(base_boxes, [self.cell_size, self.cell_size, 1, 4]),
+            np.resize(base_boxes, [cell_size, cell_size, 1, 4]),
             [1, 1, self.boxes_per_cell, 1])
 
         predict_boxes = base_boxes + predict_boxes
@@ -364,16 +370,16 @@ class YOLOUNet(Net):
         iou_predict_truth = self.iou(predict_boxes, label[0:4])
         # calculate C [cell_size, cell_size, boxes_per_cell]
         C = iou_predict_truth * tf.reshape(response,
-                                           [self.cell_size, self.cell_size, 1])
+                                           [cell_size, cell_size, 1])
 
         # calculate I tensor [CELL_SIZE, CELL_SIZE, BOXES_PER_CELL]
         I = iou_predict_truth * tf.reshape(response,
-                                           (self.cell_size, self.cell_size, 1))
+                                           (cell_size, cell_size, 1))
 
         max_I = tf.reduce_max(I, 2, keep_dims=True)
 
         I = tf.cast((I >= max_I), tf.float32) * tf.reshape(response, (
-        self.cell_size, self.cell_size, 1))
+        cell_size, cell_size, 1))
 
         # calculate no_I tensor [CELL_SIZE, CELL_SIZE, BOXES_PER_CELL]
         no_I = tf.ones_like(I, dtype=tf.float32) - I
@@ -413,7 +419,7 @@ class YOLOUNet(Net):
 
         # class_loss
         class_loss = tf.nn.l2_loss(
-            tf.reshape(objects, (self.cell_size, self.cell_size, 1)) * (
+            tf.reshape(objects, (cell_size, cell_size, 1)) * (
             p_P - P)) * self.class_scale
 
         # object_loss
@@ -424,9 +430,9 @@ class YOLOUNet(Net):
 
         # coord_loss
         coord_loss = (tf.nn.l2_loss(
-            I * (p_x - x) / (self.image_size / self.cell_size)) +
+            I * (p_x - x) / (self.image_size / cell_size)) +
                       tf.nn.l2_loss(
-                          I * (p_y - y) / (self.image_size / self.cell_size)) +
+                          I * (p_y - y) / (self.image_size / cell_size)) +
                       tf.nn.l2_loss(I * (p_sqrt_w - sqrt_w)) / self.image_size +
                       tf.nn.l2_loss(I * (
                       p_sqrt_h - sqrt_h)) / self.image_size) * self.coord_scale
@@ -436,7 +442,8 @@ class YOLOUNet(Net):
         return num + 1, object_num, [loss[0] + class_loss,
                                      loss[1] + object_loss,
                                      loss[2] + noobject_loss,
-                                     loss[3] + coord_loss], predict, labels, nilboy
+                                     loss[3] + coord_loss], predict, labels, \
+               cell_size, nilboy
 
     def iou(self, boxes1, boxes2):
         """calculate ious

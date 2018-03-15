@@ -46,7 +46,10 @@ class YoloDataSet(DataSet):
 
         for line in input_file:
             line = line.strip()
-            ss = line.split(' ')
+            if ',' in line:
+                ss = line.split(',')
+            else:
+                ss = line.split(' ')
             ss[1:] = [float(num) for num in ss[1:]]
             self.record_list.append(ss)
 

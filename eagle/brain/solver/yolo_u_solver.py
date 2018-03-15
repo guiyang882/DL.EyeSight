@@ -75,6 +75,7 @@ class YoloUSolver(Solver):
         self.net.set_cell_size(grid_size=9)
         total_loss_g9, nilboy_g9 = self.net.loss(
             self.predicts["predicts_g9"], self.labels, self.objects_num)
+        self.net.set_cell_size(grid_size=15)
         total_loss_g15, nilboy_g15 = self.net.loss(
             self.predicts["predicts_g15"], self.labels, self.objects_num)
 
@@ -93,7 +94,8 @@ class YoloUSolver(Solver):
         sess = tf.Session()
 
         sess.run(init)
-        saver_pretrain.restore(sess, self.pretrain_path)
+        if self.pretrain_path != "None":
+            saver_pretrain.restore(sess, self.pretrain_path)
 
         summary_writer = tf.summary.FileWriter(self.train_dir, sess.graph)
 
@@ -101,8 +103,8 @@ class YoloUSolver(Solver):
             start_time = time.time()
             np_images, np_labels, np_objects_num = self.dataset.batch()
 
-            _, loss_value, nilboy = sess.run(
-                [self.train_op, self.total_loss, self.nilboy],
+            _, loss_value = sess.run(
+                [self.train_op, self.total_loss],
                 feed_dict={
                     self.images: np_images,
                     self.labels: np_labels,
@@ -113,7 +115,7 @@ class YoloUSolver(Solver):
 
             assert not np.isnan(loss_value), 'Model diverged with loss = NaN'
 
-            if step % 10 == 0:
+            if step % 1 == 0:
                 num_examples_per_step = self.dataset.batch_size
                 examples_per_sec = num_examples_per_step / duration
                 sec_per_batch = float(duration)
@@ -124,13 +126,15 @@ class YoloUSolver(Solver):
                                     examples_per_sec, sec_per_batch))
                 sys.stdout.flush()
             if step % 1000 == 0:
-                summary_str = sess.run(summary_op,
-                                       feed_dict={self.images: np_images,
-                                                  self.labels: np_labels,
-                                                  self.objects_num: np_objects_num})
+                summary_str = sess.run(
+                    summary_op,
+                    feed_dict={
+                        self.images: np_images,
+                        self.labels: np_labels,
+                        self.objects_num: np_objects_num
+                    })
                 summary_writer.add_summary(summary_str, step)
             if step % 5000 == 0:
                 saver_train.save(sess,
-                                 self.train_dir + '/model.ckpt',
-                                 global_step=step)
+                                 self.train_dir + '/model.ckpt')
         sess.close()
