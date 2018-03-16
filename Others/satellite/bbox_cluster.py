@@ -12,15 +12,18 @@ from __future__ import print_function
 import os
 import numpy as np
 
-from sklearn.cluster import KMeans
 import matplotlib.pyplot as plt
+from matplotlib.font_manager import FontProperties
 
 from Others.satellite.process import parse_xml
 
+# print(plt.rcParams.keys())
+font = FontProperties(fname='/Library/Fonts/ufonts.com_fangsong.ttf')
 
 data_dir = "/Volumes/projects/DataSets/CSUVideo/source"
-namesets = ["large_000013363_total", "large_000014631_total",
-            "large_minneapolis_1_total", "large_tunisia_total"]
+# namesets = ["large_000013363_total", "large_000014631_total",
+#             "large_minneapolis_1_total", "large_tunisia_total"]
+namesets = ["large_000013363_total"]
 
 
 datum = []
@@ -48,10 +51,25 @@ d = {}
 for i in datum_width:
     d.setdefault(i, 0)
     d[i] += 1
-x = d.keys()
-y = d.values()
-plt.scatter(x, y)
-plt.show()
+x_w = d.keys()
+y_w = d.values()
+
+d = {}
+for i in datum_height:
+    d.setdefault(i, 0)
+    d[i] += 1
+x_h = d.keys()
+y_h = d.values()
+
+select_1 = plt.scatter(x_w, y_w, label=u'目标宽的分布')
+select_2 = plt.scatter(x_h, y_h, label=u'目标高的分布')
+plt.legend(handles=[select_1, select_2], prop=font)
+
+plt.title(u"目标尺寸分布图", fontproperties=font)
+plt.xlabel(u"尺寸/像素", fontproperties=font)
+plt.ylabel(u"数量/个", fontproperties=font)
+plt.savefig("h_w_distribution.png", dpi=300)
+# plt.show()
 # datum_width = datum_width.reshape((datum_width.shape[0], 1))
 # datum_height = datum_height.reshape((datum_height.shape[0], 1))
 # d = np.concatenate([datum_width, datum_height], axis=1)
