@@ -38,7 +38,7 @@ class YoloUNet(Net):
     def inference(self, images):
         # (32, 254, 254, 32)
         conv = tf.layers.Conv2D(
-            filters=32,
+            filters=16,
             kernel_size=(5, 5),
             strides=(2, 2),
             padding='valid',
@@ -57,7 +57,7 @@ class YoloUNet(Net):
 
         # (32, 62, 62, 64)
         conv = tf.layers.Conv2D(
-            filters=64,
+            filters=32,
             kernel_size=(5, 5),
             strides=(2, 2),
             padding='valid',
@@ -76,7 +76,7 @@ class YoloUNet(Net):
 
         # (32, 29, 29, 128)
         conv3 = tf.layers.Conv2D(
-            filters=128,
+            filters=64,
             kernel_size=(3, 3),
             strides=(1, 1),
             padding='valid',
@@ -126,7 +126,7 @@ class YoloUNet(Net):
         ## 添加反卷积操作
         # (32, 9, 9, 256)
         dconv5 = tf.layers.Conv2DTranspose(
-            filters=256,
+            filters=192,
             kernel_size=(3, 3),
             strides=(2, 2),
             padding="valid",
@@ -177,7 +177,7 @@ class YoloUNet(Net):
 
         fc2_g9 = tf.contrib.layers.fully_connected(
             inputs=fc1_g9,
-            num_outputs=1024,
+            num_outputs=512,
             activation_fn=tf.nn.leaky_relu
         )
 
@@ -210,7 +210,7 @@ class YoloUNet(Net):
 
         fc2_g15 = tf.contrib.layers.fully_connected(
             inputs=fc1_g15,
-            num_outputs=1024,
+            num_outputs=512,
             activation_fn=tf.nn.leaky_relu
         )
 

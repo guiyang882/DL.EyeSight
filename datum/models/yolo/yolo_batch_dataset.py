@@ -12,7 +12,7 @@ import random
 import cv2
 import numpy as np
 from queue import Queue
-from threading import Thread
+from threading import Thread, Lock
 
 from datum.meta.dataset import DataSet
 
@@ -36,8 +36,7 @@ class YoloDataSet(DataSet):
         self.max_objects = int(common_params['max_objects_per_image'])
 
         # record and image_label queue
-        self.record_queue = Queue(maxsize=10000)
-        self.image_label_queue = Queue(maxsize=5000)
+        self.image_label_queue = Queue(maxsize=100)
 
         self.record_list = []
 
@@ -55,31 +54,42 @@ class YoloDataSet(DataSet):
 
         self.record_point = 0
         self.record_number = len(self.record_list)
-
-        self.num_batch_per_epoch = int(self.record_number / self.batch_size)
-
-        t_record_producer = Thread(target=self.record_producer)
-        t_record_producer.daemon = True
-        t_record_producer.start()
+        self.record_number_lock = Lock()
 
         for i in range(self.thread_num):
-            t = Thread(target=self.record_customer)
-            t.daemon = True
-            t.start()
+            t_record_producer = Thread(target=self.record_producer)
+            t_record_producer.daemon = True
+            t_record_producer.start()
+
+        # for i in range(self.thread_num):
+        #     t = Thread(target=self.record_customer)
+        #     t.daemon = True
+        #     t.start()
 
     def record_producer(self):
-        while True:
+        def update_shuffle():
             if self.record_point % self.record_number == 0:
                 random.shuffle(self.record_list)
                 self.record_point = 0
-            self.record_queue.put(self.record_list[self.record_point])
-            self.record_point += 1
 
-    def record_customer(self):
         while True:
-            item = self.record_queue.get()
-            out = self.record_process(item)
-            self.image_label_queue.put(out)
+            outs = list()
+            while len(outs) < self.batch_size:
+                item = self.record_list[self.record_point]
+                out = self.record_process(item)
+                outs.append(out)
+                self.record_number_lock.acquire()
+                self.record_point += 1
+                update_shuffle()
+                self.record_number_lock.release()
+
+            self.image_label_queue.put(outs)
+
+    # def record_customer(self):
+    #     while True:
+    #         item = self.record_queue.get()
+    #         out = self.record_process(item)
+    #         self.image_label_queue.put(out)
 
     def record_process(self, record):
         """record process
@@ -132,11 +142,18 @@ class YoloDataSet(DataSet):
         images = []
         labels = []
         objects_num = []
+        outs = self.image_label_queue.get()
         for i in range(self.batch_size):
-            image, label, object_num = self.image_label_queue.get()
+            image, label, object_num = outs[i][:]
             images.append(image)
             labels.append(label)
             objects_num.append(object_num)
+
+        # for i in range(self.batch_size):
+        #     image, label, object_num = self.image_label_queue.get()
+        #     images.append(image)
+        #     labels.append(label)
+        #     objects_num.append(object_num)
         images = np.asarray(images, dtype=np.float32)
         images = images / 255 * 2 - 1
         labels = np.asarray(labels, dtype=np.float32)

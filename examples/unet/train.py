@@ -11,7 +11,8 @@ from __future__ import print_function
 from optparse import OptionParser
 
 from datum.utils.process_config import process_config
-from datum.models.yolo.yolo_dataset import YoloDataSet
+# from datum.models.yolo.yolo_dataset import YoloDataSet
+from datum.models.yolo.yolo_batch_dataset import YoloDataSet
 from eagle.brain.solver.yolo_u_solver import YoloUSolver
 from eagle.brain.yolo.yolo_u_net import YoloUNet
 
@@ -26,7 +27,11 @@ else:
   exit(0)
 
 common_params, dataset_params, net_params, solver_params = process_config(conf_file)
+print("After Proces Config File !")
 dataset = YoloDataSet(common_params, dataset_params)
+print("Prepared DataSet !")
 net = YoloUNet(common_params, net_params)
+print("Building the Deep Learning Model !")
 solver = YoloUSolver(dataset, net, common_params, solver_params)
+print("Now Start Learning Best Parameters !")
 solver.solve()
