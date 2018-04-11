@@ -79,6 +79,8 @@ class YoloUSolver(Solver):
         total_loss_g15, nilboy_g15 = self.net.loss(
             self.predicts["predicts_g15"], self.labels, self.objects_num)
 
+        # self.nilboy_g9 = nilboy_g9
+        # self.nilboy_g15 = nilboy_g15
         self.total_loss = 0.5 * (total_loss_g9 + total_loss_g15)
         tf.summary.scalar('loss', self.total_loss)
         self.train_op = self._train()
@@ -138,3 +140,71 @@ class YoloUSolver(Solver):
                 saver_train.save(sess,
                                  self.train_dir + '/model.ckpt')
         sess.close()
+
+    def process_predicts(self, predicts, cell_size):
+        p_classes = predicts[0, :, :, 0:1]
+        C = predicts[0, :, :, 1:3]
+        coordinate = predicts[0, :, :, 3:]
+
+        p_classes = np.reshape(p_classes, (cell_size, cell_size, 1, 1))
+        C = np.reshape(C, (cell_size, cell_size, 2, 1))
+
+        P = C * p_classes
+
+        # print P[5,1, 0, :]
+
+        index = np.argmax(P)
+        index = np.unravel_index(index, P.shape)
+        class_num = index[3]
+
+        coordinate = np.reshape(coordinate, (cell_size, cell_size, 2, 4))
+        max_coordinate = coordinate[index[0], index[1], index[2], :]
+
+        xcenter = max_coordinate[0]
+        ycenter = max_coordinate[1]
+        w = max_coordinate[2]
+        h = max_coordinate[3]
+
+        xcenter = (index[1] + xcenter) * (self.width / cell_size)
+        ycenter = (index[0] + ycenter) * (self.height / cell_size)
+
+        w = w * self.width
+        h = h * self.height
+
+        xmin = xcenter - w / 2.0
+        ymin = ycenter - h / 2.0
+
+        xmax = xmin + w
+        ymax = ymin + h
+
+        xmin = max(0, xmin)
+        xmax = max(0, xmax)
+        return xmin, ymin, xmax, ymax, class_num
+
+    def model_predict(self, single_image):
+        saver_pretrain = tf.train.Saver(max_to_keep=3)
+
+        init = tf.global_variables_initializer()
+        sess = tf.Session()
+        sess.run(init)
+
+        if self.pretrain_path != "None":
+            saver_pretrain.restore(sess, self.pretrain_path)
+
+        start_time = time.time()
+
+        predics_info = sess.run(
+            self.predicts,
+            feed_dict={
+                self.images: single_image
+            })
+
+        duration = time.time() - start_time
+
+        xmin, ymin, xmax, ymax, class_num = self.process_predicts(
+            predics_info["predicts_g9"], cell_size=9)
+        # xmin, ymin, xmax, ymax, class_num = self.process_predicts(
+        #     predics_info["predicts_g15"])
+        sess.close()
+
+        return (xmin, ymin, xmax, ymax, class_num)

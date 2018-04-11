@@ -53,16 +53,26 @@ def process_config(conf_file):
             for option in config.options(section):
                 box_encoder_params[option] = config.get(section, option)
 
+    # 检测当前任务是需要进行测试还是进行训练
+    if "is_predict" in common_params.keys():
+        if common_params["is_predict"] == "True":
+            common_params["is_predict"] = True
+            common_params["batch_size"] = 1
+        else:
+            common_params["is_predict"] = False
+
     if len(box_encoder_params) == 0:
         return common_params, dataset_params, net_params, solver_params
+
+
     return common_params, dataset_params, net_params, solver_params, box_encoder_params
 
 if __name__ == '__main__':
     common_params, dataset_params, net_params, solver_params = process_config(
-        "../../conf/ssd_train.cfg")
+        "../../conf/yolo_unet_train.cfg")
     print(common_params)
     print(dataset_params)
-    import json
-    print(json.loads(dataset_params["classes"]))
-    print(net_params["aspect_ratios"])
+    # import json
+    # print(json.loads(dataset_params["classes"]))
+    # print(net_params["aspect_ratios"])
     # print(json.loads(net_params["aspect_ratios"]))
