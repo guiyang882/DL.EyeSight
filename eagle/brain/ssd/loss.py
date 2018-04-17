@@ -104,8 +104,11 @@ class Loss:
         self.n_neg_min = tf.constant(self.n_neg_min)
         self.alpha = tf.constant(self.alpha)
 
-        batch_size = tf.shape(y_pred)[0] # Output dtype: tf.int32
-        n_boxes = tf.shape(y_pred)[1] # Output dtype: tf.int32, note that `n_boxes` in this context denotes the total number of boxes per image, not the number of boxes per cell
+        # Output dtype: tf.int32
+        batch_size = tf.shape(y_pred)[0]
+        # Output dtype: tf.int32, note that `n_boxes` in this context denotes the total number of boxes per image,
+        # not the number of boxes per cell
+        n_boxes = tf.shape(y_pred)[1]
 
         # 1: Compute the losses for class and box predictions for every box
 
@@ -142,13 +145,17 @@ class Loss:
 
         # First, compute the classification loss for all negative boxes
         neg_class_loss_all = classification_loss * negatives # Tensor of shape (batch_size, n_boxes)
-        n_neg_losses = tf.count_nonzero(neg_class_loss_all, dtype=tf.int32) # The number of non-zero loss entries in `neg_class_loss_all`
-        # What's the point of `n_neg_losses`? For the next step, which will be to compute which negative boxes enter the classification
-        # loss, we don't just want to know how many negative ground truth boxes there are, but for how many of those there actually is
-        # a positive (i.e. non-zero) loss. This is necessary because `tf.nn.top-k()` in the function below will pick the top k boxes with
-        # the highest losses no matter what, even if it receives a vector where all losses are zero. In the unlikely event that all negative
-        # classification losses ARE actually zero though, this behavior might lead to `tf.nn.top-k()` returning the indices of positive
-        # boxes, leading to an incorrect negative classification loss computation, and hence an incorrect overall loss computation.
+        # The number of non-zero loss entries in `neg_class_loss_all`
+        n_neg_losses = tf.count_nonzero(neg_class_loss_all, dtype=tf.int32)
+        # What's the point of `n_neg_losses`?
+        # For the next step, which will be to compute which negative boxes enter the classification loss,
+        # we don't just want to know how many negative ground truth boxes there are,
+        # but for how many of those there actually is a positive (i.e. non-zero) loss.
+        # This is necessary because `tf.nn.top-k()` in the function below will pick the top k boxes with
+        # the highest losses no matter what, even if it receives a vector where all losses are zero.
+        # In the unlikely event that all negative classification losses ARE actually zero though,
+        # this behavior might lead to `tf.nn.top-k()` returning the indices of positive boxes,
+        # leading to an incorrect negative classification loss computation, and hence an incorrect overall loss computation.
         # We therefore need to make sure that `n_negative_keep`, which assumes the role of the `k` argument in `tf.nn.top-k()`,
         # is at most the number of negative boxes for which there is a positive classification loss.
 
@@ -171,20 +178,28 @@ class Loss:
             # ...and then we get the indices for the `n_negative_keep` boxes with the highest loss out of those...
             values, indices = tf.nn.top_k(neg_class_loss_all_1D, n_negative_keep, False) # We don't need sorting
             # ...and with these indices we'll create a mask...
-            negatives_keep = tf.scatter_nd(tf.expand_dims(indices, axis=1), updates=tf.ones_like(indices, dtype=tf.int32), shape=tf.shape(neg_class_loss_all_1D)) # Tensor of shape (batch_size * n_boxes,)
-            negatives_keep = tf.to_float(tf.reshape(negatives_keep, [batch_size, n_boxes])) # Tensor of shape (batch_size, n_boxes)
+            # Tensor of shape (batch_size * n_boxes,)
+            negatives_keep = tf.scatter_nd(
+                indices=tf.expand_dims(indices, axis=1),
+                updates=tf.ones_like(indices, dtype=tf.int32),
+                shape=tf.shape(neg_class_loss_all_1D))
+            # Tensor of shape (batch_size, n_boxes)
+            negatives_keep = tf.to_float(tf.reshape(negatives_keep, [batch_size, n_boxes]))
             # ...and use it to keep only those boxes and mask all other classification losses
-            neg_class_loss = tf.reduce_sum(classification_loss * negatives_keep, axis=-1) # Tensor of shape (batch_size,)
+            # Tensor of shape (batch_size,)
+            neg_class_loss = tf.reduce_sum(classification_loss * negatives_keep, axis=-1)
             return neg_class_loss
 
         neg_class_loss = tf.cond(tf.equal(n_neg_losses, tf.constant(0)), f1, f2)
 
-        class_loss = pos_class_loss + neg_class_loss # Tensor of shape (batch_size,)
+        # Tensor of shape (batch_size,)
+        class_loss = pos_class_loss + neg_class_loss
 
         # 3: Compute the localization loss for the positive targets
         #    We don't penalize localization loss for negative predicted boxes (obviously: there are no ground truth boxes they would correspond to)
 
-        loc_loss = tf.reduce_sum(localization_loss * positives, axis=-1) # Tensor of shape (batch_size,)
+        # Tensor of shape (batch_size,)
+        loc_loss = tf.reduce_sum(localization_loss * positives, axis=-1)
 
         # 4: Compute the total loss
 

@@ -11,7 +11,7 @@ from __future__ import print_function
 import numpy as np
 import tensorflow as tf
 
-import keras.backend as K
+# import keras.backend as K
 from keras.engine.topology import Layer
 from keras.engine.topology import InputSpec
 
@@ -57,9 +57,7 @@ class AnchorBoxes(Layer):
         normalize_coords (bool, optional): Set to `True` if the model uses relative instead of absolute coordinates,
                 i.e. if the model predicts box coordinates within [0,1] instead of absolute coordinates. Defaults to `False`.
         '''
-        if K.backend() != 'tensorflow':
-            raise TypeError("Tensorflow Model, Not %s".format(K.backend()))
-        if (this_scale<0) or (this_scale>1) or (next_scale<0):
+        if (this_scale < 0) or (this_scale > 1) or (next_scale < 0):
             raise ValueError("this_scale or next_scale must be in [0, 1]")
 
         self.img_height = img_height
