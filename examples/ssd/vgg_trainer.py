@@ -23,7 +23,7 @@ parser.add_option("-c", "--conf",
 if options.configure:
     conf_file = str(options.configure)
 else:
-    print('please sspecify --conf configure filename')
+    print('please specify --conf configure filename')
     exit(0)
 
 common_params, dataset_params, net_params, solver_params, box_encoder_params = \

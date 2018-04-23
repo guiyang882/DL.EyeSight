@@ -20,7 +20,6 @@ sys.path.insert(0, p1)
 
 from importlib import reload
 reload(sys)
-# print(sys.path)
 
 import cv2
 
@@ -128,7 +127,7 @@ def format_corp_images():
         os.remove(abs_anno_path)
 
 # 根据图像文件列表，对数据集进行切分
-from sklearn.cross_validation import train_test_split
+from sklearn.model_selection import train_test_split
 
 def split_train_valid_test():
     save_dir = "/Volumes/projects/repos/RSI/LSD10/"

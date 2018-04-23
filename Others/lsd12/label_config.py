@@ -25,7 +25,7 @@ sign_idx_dict = {
     "van": 11,
     "pickup": 12,
     "truck": 12,
-    "tractor": 12,
+    "tractor": 12
 }
 
 idx_sign_dict = {

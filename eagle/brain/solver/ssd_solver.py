@@ -8,7 +8,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import os
 import sys
 import time
 from datetime import datetime
@@ -95,8 +94,8 @@ class SSDSolver(Solver):
 
         sess = tf.Session()
         sess.run(init)
-
-        saver.restore(sess, self.pretrain_path)
+        if self.pretrain_path != "None":
+            saver.restore(sess, self.pretrain_path)
 
         summary_writer = tf.summary.FileWriter(self.train_dir, sess.graph)
 

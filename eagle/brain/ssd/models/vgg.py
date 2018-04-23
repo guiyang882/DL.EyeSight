@@ -396,7 +396,8 @@ class SSDVGG(Net):
         )(conv9_1)
 
         # Feed conv4_3 into the L2 normalization layer
-        conv4_3_norm = tf.nn.l2_normalize(conv4_3, dim=3, name="conv4_3_norm")
+        # conv4_3_norm = tf.nn.l2_normalize(conv4_3, dim=3, name="conv4_3_norm")
+        conv4_3_norm = tf.nn.l2_normalize(conv4_3, axis=3, name="conv4_3_norm")
         # conv4_3_norm = L2Normalization(gamma_init=20,
         #                                name='conv4_3_norm')(conv4_3)
 
