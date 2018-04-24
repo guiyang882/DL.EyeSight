@@ -203,7 +203,7 @@ class SSDDataSet(DataSet):
                     labels.append([xmin * width_rate, ymin * height_rate,
                                    xmax * width_rate, ymax * height_rate,
                                    class_id])
-                elif ymin < h0 - 1 and ymax > h0 - 1:
+                elif ymin < h0 - 1 < ymax:
                     if (h0 - 1 - ymin) / (ymax - ymin) >= 0.6:
                         labels.append([xmin * width_rate, ymin * height_rate,
                                        xmax * width_rate, h0 - 1,

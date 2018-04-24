@@ -151,6 +151,7 @@ def split_train_valid_test():
         for line in X_test:
             h3.write("{}\n".format(line))
 
+
 if __name__ == '__main__':
     split_train_valid_test()
     # Others.show_targets(lsd_voc_image_dir, lsd_voc_anno_dir)

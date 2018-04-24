@@ -250,7 +250,7 @@ class SSDVGGDilated(Net):
             filter=filter_tf,
             strides=(1, 4, 4, 1),
             rates=(1, 2, 2, 1),
-            padding="VALID",
+            padding="SAME",
             name="conv2_2_dilated")
         # added over
 
@@ -295,7 +295,7 @@ class SSDVGGDilated(Net):
             filter=filter_tf,
             strides=(1, 4, 4, 1),
             rates=(1, 2, 2, 1),
-            padding="VALID",
+            padding="SAME",
             name="conv3_3_dilated")
         # added over
 
@@ -340,7 +340,7 @@ class SSDVGGDilated(Net):
             filter=filter_tf,
             strides=(1, 4, 4, 1),
             rates=(1, 2, 2, 1),
-            padding="VALID",
+            padding="SAME",
             name="conv4_3_dilated")
         # added over
 
@@ -376,7 +376,7 @@ class SSDVGGDilated(Net):
             kernel_size=(3, 3),
             strides=(2, 2),
             activation=tf.nn.relu,
-            padding='same',
+            padding='valid',
             kernel_initializer=tf.keras.initializers.he_normal(),
             name='conv6_2'
         )(conv6_1)
@@ -395,7 +395,7 @@ class SSDVGGDilated(Net):
             kernel_size=(3, 3),
             strides=(2, 2),
             activation=tf.nn.relu,
-            padding='same',
+            padding='valid',
             kernel_initializer=tf.keras.initializers.he_normal(),
             name='conv7_2'
         )(conv7_1)
