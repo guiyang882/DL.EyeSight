@@ -10,6 +10,14 @@ from __future__ import print_function
 
 from optparse import OptionParser
 
+import os, sys
+abs_path = os.path.abspath(__file__)
+proj_root = "/".join(abs_path.split("/")[:-3])
+sys.path.insert(0, proj_root)
+
+from importlib import reload
+reload(sys)
+
 from datum.utils.process_config import process_config
 from datum.models.ssd.ssd_dataset import SSDDataSet
 from eagle.brain.ssd.models.vgg import SSDVGG

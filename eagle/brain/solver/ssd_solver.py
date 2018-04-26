@@ -133,5 +133,6 @@ class SSDSolver(Solver):
                 summary_writer.add_summary(summary_str, step)
             if step % 2000 == 0:
                 saver.save(sess,
-                           self.train_dir + '/model.ckpt')
+                           self.train_dir + '/model.ckpt', global_step=step)
+        saver.save(sess, self.train_dir + '/model.ckpt', global_step=step)
         sess.close()
