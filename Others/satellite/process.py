@@ -46,6 +46,7 @@ def parse_xml(xml_file):
 def convert_list2str(labels):
     return ",".join([",".join(list(map(str, item))) for item in labels])
 
+
 for dataset in image_sets:
     anno_prefix = "/".join([data_dir, dataset, "Annotations"])
     image_prefix = "/".join([data_dir, dataset, "JPEGImages"])

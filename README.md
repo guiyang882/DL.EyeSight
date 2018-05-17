@@ -17,6 +17,26 @@ Opencv: 3.2.0 version for python
 * SSD+Deconvolution
 * YOLO
 
+## 运行说明
+1. 先准备好数据集
+```shell
+cat /Volumes/projects/DataSets/VOC2007/voc_train.txt
+image_path01 xmin ymin xmax ymax class_id xmin ymin xmax ymax class_id
+image_path02 xmin ymin xmax ymax class_id xmin ymin xmax ymax class_id
+image_path03 xmin ymin xmax ymax class_id xmin ymin xmax ymax class_id
+
+PS：Class_id从0开始编号，顺序同cfg文件中的label顺序一致
+```
+2. 修改配置文件
+配置文件存放在根目录下：**conf/ssd_train.cfg**
+其中还有若干配置项，进行修改
+
+3. 运行程序
+进入到example/ssd目录中
+```
+python vgg_trainer.py -c ../../conf/ssd_train.cfg
+```
+
 ## TODOLISTS
 - [x] 整理文件目录结构，按照设计模式进行
 - [x] 增加数据预处理的PipeLine

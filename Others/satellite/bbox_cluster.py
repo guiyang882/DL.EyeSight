@@ -18,7 +18,8 @@ from matplotlib.font_manager import FontProperties
 from Others.satellite.process import parse_xml
 
 # print(plt.rcParams.keys())
-font = FontProperties(fname='/Library/Fonts/ufonts.com_fangsong.ttf')
+# font = FontProperties(fname='/Library/Fonts/ufonts.com_fangsong.ttf')
+font = FontProperties(fname='/Users/liuguiyang/Library/Fonts/仿宋_GB2312.ttf')
 
 data_dir = "/Volumes/projects/DataSets/CSUVideo/source"
 # namesets = ["large_000013363_total", "large_000014631_total",
@@ -61,8 +62,8 @@ for i in datum_height:
 x_h = d.keys()
 y_h = d.values()
 
-select_1 = plt.scatter(x_w, y_w, label=u'目标宽的分布')
-select_2 = plt.scatter(x_h, y_h, label=u'目标高的分布')
+select_1 = plt.scatter(x_w, y_w, marker="o", label=u'目标宽的分布')
+select_2 = plt.scatter(x_h, y_h, marker="*", label=u'目标高的分布')
 plt.legend(handles=[select_1, select_2], prop=font)
 
 plt.title(u"目标尺寸分布图", fontproperties=font)
